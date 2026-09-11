@@ -16,35 +16,33 @@ OUT_STATIONS = DATA_DIR / "gtfs_station_metrics.csv"
 OUT_SEGMENTS = DATA_DIR / "gtfs_metro_segment_travel_times.csv"
 OUT_META = DATA_DIR / "gtfs_refresh_metadata.json"
 
-# Separate feeds keep CMRL and MTC mode logic explicit and avoid ambiguity in
-# the unified feed's agency/route mappings.
+# Separate community-maintained feeds keep CMRL and MTC mode logic explicit.
 CMRL_GTFS_URL = "https://github.com/ungalsoththu/ChennaiGTFS/raw/main/data/cmrl-gtfs.zip"
 MTC_GTFS_URL = "https://github.com/ungalsoththu/ChennaiGTFS/raw/main/data/mtc-gtfs.zip"
 
 
 def download_zip(url: str) -> zipfile.ZipFile:
-    req = Request(url, headers={"User-Agent": "urban-mobility-portfolio-pipeline/2.1"})
+    req = Request(url, headers={"User-Agent": "urban-mobility-portfolio-pipeline/3.0"})
     with urlopen(req, timeout=90) as response:
-        payload = response.read()
-    return zipfile.ZipFile(io.BytesIO(payload))
+        return zipfile.ZipFile(io.BytesIO(response.read()))
 
 
 def read_csv(zf: zipfile.ZipFile, name: str, usecols=None) -> pd.DataFrame:
-    candidates = [name, f"cmrl/{name}", f"mtc/{name}", f"unified/{name}", f"gtfs/{name}"]
     names = set(zf.namelist())
+    candidates = [name, f"cmrl/{name}", f"mtc/{name}", f"unified/{name}", f"gtfs/{name}"]
     for candidate in candidates:
         if candidate in names:
             return pd.read_csv(zf.open(candidate), usecols=usecols, low_memory=False)
-    raise FileNotFoundError(f"{name} not found in feed. Available files: {sorted(names)[:20]}")
+    raise FileNotFoundError(f"{name} not found. Available files: {sorted(names)[:30]}")
 
 
-def haversine_m(lat1, lon1, lat2, lon2):
-    r = 6371000.0
+def haversine_m(lat1, lon1, lat2, lon2) -> float:
+    radius_m = 6_371_000.0
     p1, p2 = math.radians(float(lat1)), math.radians(float(lat2))
     dlat = math.radians(float(lat2) - float(lat1))
     dlon = math.radians(float(lon2) - float(lon1))
     a = math.sin(dlat / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlon / 2) ** 2
-    return 2 * r * math.asin(math.sqrt(a))
+    return 2 * radius_m * math.asin(math.sqrt(a))
 
 
 def gtfs_seconds(value) -> int | None:
@@ -57,7 +55,7 @@ def gtfs_seconds(value) -> int | None:
         h, m, s = [int(x) for x in parts]
     except ValueError:
         return None
-    if not (h >= 0 and 0 <= m < 60 and 0 <= s < 60):
+    if h < 0 or not (0 <= m < 60) or not (0 <= s < 60):
         return None
     return h * 3600 + m * 60 + s
 
@@ -69,12 +67,10 @@ def percentile_rank(series: pd.Series, ascending: bool = True) -> pd.Series:
     lo, hi = float(clean.min()), float(clean.max())
     if math.isclose(lo, hi):
         return pd.Series(1.0, index=series.index)
-    if ascending:
-        return (clean - lo) / (hi - lo)
-    return (hi - clean) / (hi - lo)
+    return (clean - lo) / (hi - lo) if ascending else (hi - clean) / (hi - lo)
 
 
-def main():
+def main() -> None:
     DATA_DIR.mkdir(exist_ok=True)
 
     with download_zip(CMRL_GTFS_URL) as cmrl_zip, download_zip(MTC_GTFS_URL) as mtc_zip:
@@ -85,32 +81,54 @@ def main():
             "stop_times.txt",
             ["trip_id", "arrival_time", "departure_time", "stop_id", "stop_sequence"],
         )
-        cmrl_routes = read_csv(cmrl_zip, "routes.txt", ["route_id", "route_short_name", "route_long_name", "route_type"])
+        cmrl_routes = read_csv(
+            cmrl_zip,
+            "routes.txt",
+            ["route_id", "route_short_name", "route_long_name", "route_type"],
+        )
 
         mtc_trips = read_csv(mtc_zip, "trips.txt", ["route_id", "trip_id"])
         mtc_stops = read_csv(mtc_zip, "stops.txt", ["stop_id", "stop_name", "stop_lat", "stop_lon"])
         mtc_stop_times = read_csv(mtc_zip, "stop_times.txt", ["trip_id", "stop_id"])
-        mtc_routes = read_csv(mtc_zip, "routes.txt", ["route_id", "route_short_name", "route_long_name", "route_type"])
+        mtc_routes = read_csv(
+            mtc_zip,
+            "routes.txt",
+            ["route_id", "route_short_name", "route_long_name", "route_type"],
+        )
 
     for frame in (cmrl_stops, mtc_stops):
         frame["stop_id"] = frame["stop_id"].astype(str)
         frame["stop_lat"] = pd.to_numeric(frame["stop_lat"], errors="coerce")
         frame["stop_lon"] = pd.to_numeric(frame["stop_lon"], errors="coerce")
 
-    cmrl_stop_ids = set(cmrl_stop_times["stop_id"].dropna().astype(str))
+    # IMPORTANT: use all coordinate-valid CMRL stops, not only stops present in
+    # stop_times. This preserves station coverage even when the feed only
+    # schedules a subset of platform/stop records.
+    cmrl_stops = (
+        cmrl_stops.dropna(subset=["stop_lat", "stop_lon"])
+        .drop_duplicates("stop_id")
+        .copy()
+    )
+
     mtc_stop_ids = set(mtc_stop_times["stop_id"].dropna().astype(str))
-    cmrl_stops = cmrl_stops[cmrl_stops["stop_id"].isin(cmrl_stop_ids)].dropna(subset=["stop_lat", "stop_lon"]).drop_duplicates("stop_id")
-    mtc_stops = mtc_stops[mtc_stops["stop_id"].isin(mtc_stop_ids)].dropna(subset=["stop_lat", "stop_lon"]).drop_duplicates("stop_id")
+    mtc_stops = (
+        mtc_stops[mtc_stops["stop_id"].isin(mtc_stop_ids)]
+        .dropna(subset=["stop_lat", "stop_lon"])
+        .drop_duplicates("stop_id")
+        .copy()
+    )
 
     if cmrl_stops.empty:
-        raise RuntimeError("CMRL feed returned no usable metro stops.")
+        raise RuntimeError("CMRL feed returned no coordinate-valid stops.")
     if mtc_stops.empty:
-        raise RuntimeError("MTC feed returned no usable bus stops.")
+        raise RuntimeError("MTC feed returned no coordinate-valid bus stops linked to stop_times.")
 
+    # Route and line mapping for CMRL stops that appear in scheduled stop_times.
     cmrl_st = cmrl_stop_times[["trip_id", "stop_id"]].copy()
     cmrl_st["stop_id"] = cmrl_st["stop_id"].astype(str)
     cmrl_st = cmrl_st.merge(cmrl_trips[["trip_id", "route_id"]], on="trip_id", how="left")
     cmrl_st = cmrl_st.merge(cmrl_routes[["route_id", "route_short_name"]], on="route_id", how="left")
+
     routes_per_stop = cmrl_st.groupby("stop_id")["route_id"].nunique().rename("metro_route_count")
     trip_count_per_stop = cmrl_st.groupby("stop_id")["trip_id"].nunique().rename("metro_trip_count")
     lines_per_stop = (
@@ -120,7 +138,7 @@ def main():
         .rename("line")
     )
 
-    # Scheduled CMRL segment travel time from the dedicated CMRL stop_times file.
+    # Scheduled travel time between consecutive metro stops.
     mt = cmrl_stop_times.copy()
     mt["stop_id"] = mt["stop_id"].astype(str)
     mt["stop_sequence"] = pd.to_numeric(mt["stop_sequence"], errors="coerce")
@@ -143,25 +161,36 @@ def main():
     )
     seg = seg.rename(columns={"stop_id": "from_stop_id", "next_stop_id": "to_stop_id"})
     seg = seg.merge(
-        cmrl_stops[["stop_id", "stop_name"]].rename(columns={"stop_id": "from_stop_id", "stop_name": "from_station"}),
-        on="from_stop_id", how="left",
+        cmrl_stops[["stop_id", "stop_name"]].rename(
+            columns={"stop_id": "from_stop_id", "stop_name": "from_station"}
+        ),
+        on="from_stop_id",
+        how="left",
     )
     seg = seg.merge(
-        cmrl_stops[["stop_id", "stop_name"]].rename(columns={"stop_id": "to_stop_id", "stop_name": "to_station"}),
-        on="to_stop_id", how="left",
+        cmrl_stops[["stop_id", "stop_name"]].rename(
+            columns={"stop_id": "to_stop_id", "stop_name": "to_station"}
+        ),
+        on="to_stop_id",
+        how="left",
     )
     if seg.empty:
-        raise RuntimeError("No consecutive CMRL metro segments with usable schedule times were derived.")
+        raise RuntimeError("No consecutive CMRL segments with usable scheduled times were derived.")
     seg.to_csv(OUT_SEGMENTS, index=False)
 
-    # First/last-mile screening: nearest MTC stop and bus-stop density around each metro station.
-    bus_coords = list(mtc_stops[["stop_id", "stop_name", "stop_lat", "stop_lon"]].itertuples(index=False))
+    # First/last-mile screening from each CMRL stop to nearby MTC bus stops.
+    bus_coords = list(
+        mtc_stops[["stop_id", "stop_name", "stop_lat", "stop_lon"]].itertuples(index=False)
+    )
     rows = []
     for row in cmrl_stops.itertuples(index=False):
-        distances = [haversine_m(row.stop_lat, row.stop_lon, b.stop_lat, b.stop_lon) for b in bus_coords]
+        distances = [
+            haversine_m(row.stop_lat, row.stop_lon, bus.stop_lat, bus.stop_lon)
+            for bus in bus_coords
+        ]
         nearest_idx = min(range(len(distances)), key=distances.__getitem__)
         nearest = float(distances[nearest_idx])
-        within_500 = int(sum(d <= 500 for d in distances))
+        within_500 = int(sum(distance <= 500 for distance in distances))
         nearest_bus = bus_coords[nearest_idx]
         rows.append(
             {
@@ -179,16 +208,30 @@ def main():
     station_metrics = pd.DataFrame(rows)
     if station_metrics.empty:
         raise RuntimeError("No station-level GTFS accessibility rows were generated.")
+
     station_metrics = station_metrics.set_index("stop_id")
-    station_metrics = station_metrics.join(routes_per_stop, how="left").join(trip_count_per_stop, how="left").join(lines_per_stop, how="left")
+    station_metrics = (
+        station_metrics.join(routes_per_stop, how="left")
+        .join(trip_count_per_stop, how="left")
+        .join(lines_per_stop, how="left")
+    )
     station_metrics["metro_route_count"] = station_metrics["metro_route_count"].fillna(0).astype(int)
     station_metrics["metro_trip_count"] = station_metrics["metro_trip_count"].fillna(0).astype(int)
-    station_metrics["line"] = station_metrics["line"].fillna("Unknown")
+    station_metrics["line"] = station_metrics["line"].fillna("Not scheduled in sampled trips")
     station_metrics["interchange_flag"] = (station_metrics["metro_route_count"] > 1).astype(int)
-    station_metrics["network_role"] = station_metrics["interchange_flag"].map({1: "Interchange", 0: "Operational"})
-    station_metrics["route_coverage_score"] = percentile_rank(station_metrics["metro_route_count"], ascending=True)
-    station_metrics["first_mile_proximity_score"] = percentile_rank(station_metrics["nearest_bus_stop_m"], ascending=False)
-    station_metrics["bus_stop_density_score"] = percentile_rank(station_metrics["bus_stops_within_500m"], ascending=True)
+    station_metrics["network_role"] = station_metrics["interchange_flag"].map(
+        {1: "Interchange", 0: "Operational"}
+    )
+
+    station_metrics["route_coverage_score"] = percentile_rank(
+        station_metrics["metro_route_count"], ascending=True
+    )
+    station_metrics["first_mile_proximity_score"] = percentile_rank(
+        station_metrics["nearest_bus_stop_m"], ascending=False
+    )
+    station_metrics["bus_stop_density_score"] = percentile_rank(
+        station_metrics["bus_stops_within_500m"], ascending=True
+    )
     station_metrics["network_first_mile_screening_index"] = (
         100
         * (
@@ -203,30 +246,33 @@ def main():
         bins=[-float("inf"), 250, 500, float("inf")],
         labels=["Strong (<250m)", "Moderate (250–500m)", "Long (>500m)"],
     ).astype("string")
+
     station_metrics.reset_index().to_csv(OUT_STATIONS, index=False)
 
+    unique_segment_times = seg["median_scheduled_travel_time_min"].nunique()
     metadata = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "cmrl_source_url": CMRL_GTFS_URL,
         "mtc_source_url": MTC_GTFS_URL,
-        "source_description": "Separate Chennai CMRL metro and MTC bus static GTFS feeds maintained by UngalSoththu.",
+        "source_description": "Separate community-maintained Chennai CMRL metro and MTC bus static GTFS feeds.",
         "cmrl_route_count": int(len(cmrl_routes)),
         "mtc_route_count": int(len(mtc_routes)),
         "metro_stop_count": int(len(cmrl_stops)),
         "bus_stop_count": int(len(mtc_stops)),
         "metro_segment_count": int(len(seg)),
+        "segment_time_unique_value_count": int(unique_segment_times),
         "metrics": {
-            "scheduled_travel_time": "Median scheduled minutes between consecutive CMRL stops derived from stop_times",
-            "first_mile": "Straight-line distance from each CMRL station to nearest MTC bus stop",
-            "first_mile_500m": "Count of MTC bus stops within 500m straight-line radius",
-            "screening_index": "Equal-weight normalized combination of route coverage, inverse nearest-bus-stop distance and 500m bus-stop density; screening only",
-            "network_role": "Interchange when a CMRL station is served by more than one CMRL route in the GTFS feed; otherwise Operational",
-            "line": "CMRL route_short_name values serving each station, joined when multiple routes serve the stop",
+            "scheduled_travel_time": "Median scheduled minutes between consecutive CMRL stops from stop_times; shown as timetable evidence, not observed traffic time.",
+            "first_mile": "Straight-line distance from each coordinate-valid CMRL stop to nearest MTC bus stop.",
+            "first_mile_500m": "Count of MTC bus stops within a 500m straight-line radius.",
+            "screening_index": "Equal-weight normalized combination of route coverage, inverse nearest-bus-stop distance and 500m bus-stop density; screening only.",
+            "network_role": "Interchange when more than one CMRL route is linked to the stop in scheduled trip data; otherwise Operational.",
         },
         "limitations": [
             "Static GTFS represents scheduled service, not observed traffic or real-time delays.",
             "Straight-line first/last-mile distances are proximity proxies, not pedestrian network travel distance.",
-            "The source feeds are community-maintained and are not presented as official CMRL/CUMTA open-data feeds.",
+            "Some CMRL stop records may not appear in scheduled trip samples; those rows retain a transparent line-status label.",
+            "Community-maintained source feeds are not presented as official CMRL/CUMTA open-data feeds.",
         ],
     }
     OUT_META.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
