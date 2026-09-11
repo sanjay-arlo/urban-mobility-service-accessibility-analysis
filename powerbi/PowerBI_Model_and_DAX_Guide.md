@@ -1,94 +1,80 @@
-# Power BI Model & DAX Guide
+# Power BI Model & DAX Guide — Business-Friendly Version
 
-This file defines the recommended Power BI implementation. It is a **model/DAX specification**, not a claim that a `.pbix` file is stored in this repository.
+This document shows how the project can be rebuilt in Power BI. It is a **model and DAX specification**, not a claim that a `.pbix` file is stored in the repository.
 
-## Data model
+## Business pages
 
-### Fact_Ridership
-- Month
-- Date
-- Financial Year
-- Closed Loop
-- QR Tickets
-- NCMC
-- Total Ridership
+### 1. Passenger Demand
+Use KPI cards, monthly demand, monthly change and financial-year comparison.
 
-### Dim_GTFS_Station
-- Stop ID
-- Station Name
-- Latitude
-- Longitude
-- Metro Route Count
-- Metro Trip Count
-- Interchange Flag
-- Nearest Bus Stop Distance (m)
-- Bus Stops Within 500m
-- Network + First-Mile Screening Index
-- First-Mile Band
+### 2. How Passengers Pay
+Show NCMC, QR and closed-loop ticket shares over time.
 
-### Fact_Metro_Segment_Travel_Time
-- From Stop ID
-- To Stop ID
-- From Station
-- To Station
-- Median Scheduled Travel Time (min)
-- Trip Observations
+### 3. Passenger Access
+Show which metro stations are easier or harder to reach from nearby bus stops.
 
-Keep these datasets at their own grains. Do not create a many-to-many relationship simply to make a visual work.
+### 4. Scheduled Travel Time
+Show timetable-based travel time between adjacent stations.
+
+### 5. Stations to Investigate
+Rank stations that deserve a deeper access review.
+
+## Friendly business field names
+
+| Technical field | Dashboard / business label |
+|---|---|
+| `network_role` | Station Type |
+| `Interchange` | Transfer Station |
+| `Operational` | Standard Station |
+| `line` | Metro Corridor |
+| `nearest_bus_stop_m` | Distance to Nearest Bus Stop |
+| `bus_stops_within_500m` | Bus Stops Nearby |
+| `first_mile_band` | Bus Access |
+| `network_first_mile_screening_index` | Station Access Priority Score |
+| `median_scheduled_travel_time_min` | Scheduled Travel Time |
 
 ## Core measures
 
 ```DAX
-Total Ridership = SUM(Fact_Ridership[Total Ridership])
+Total Passengers = SUM(Fact_Ridership[Total Ridership])
 
-QR Share % = DIVIDE(SUM(Fact_Ridership[QR Tickets]), [Total Ridership])
+NCMC Share % = DIVIDE(SUM(Fact_Ridership[NCMC]), [Total Passengers])
 
-NCMC Share % = DIVIDE(SUM(Fact_Ridership[NCMC]), [Total Ridership])
+QR Share % = DIVIDE(SUM(Fact_Ridership[QR Tickets]), [Total Passengers])
 
-Closed Loop Share % = DIVIDE(SUM(Fact_Ridership[Closed Loop]), [Total Ridership])
+Closed Loop Share % = DIVIDE(SUM(Fact_Ridership[Closed Loop]), [Total Passengers])
 
-MoM Growth % =
-VAR CurrentValue = [Total Ridership]
+Monthly Demand Change % =
+VAR CurrentValue = [Total Passengers]
 VAR PreviousValue =
     CALCULATE(
-        [Total Ridership],
+        [Total Passengers],
         DATEADD('Calendar'[Date], -1, MONTH)
     )
-RETURN
-DIVIDE(CurrentValue - PreviousValue, PreviousValue)
+RETURN DIVIDE(CurrentValue - PreviousValue, PreviousValue)
 
-Interchange Stations =
-CALCULATE(
-    DISTINCTCOUNT(Dim_GTFS_Station[Stop ID]),
-    Dim_GTFS_Station[Interchange Flag] = 1
-)
+Station Count = DISTINCTCOUNT(Dim_GTFS_Station[Stop ID])
 
-Median First-Mile Distance (m) =
-MEDIAN(Dim_GTFS_Station[Nearest Bus Stop Distance (m)])
+Median Bus-Stop Distance (m) = MEDIAN(Dim_GTFS_Station[Nearest Bus Stop Distance (m)])
 
-Avg Screening Index =
-AVERAGE(Dim_GTFS_Station[Network + First-Mile Screening Index])
+Average Access Priority Score = AVERAGE(Dim_GTFS_Station[Station Access Priority Score])
 
-Avg Scheduled Segment Time (min) =
-AVERAGE(Fact_Metro_Segment_Travel_Time[Median Scheduled Travel Time (min)])
+Average Scheduled Travel Time (min) = AVERAGE(Fact_Metro_Segment_Travel_Time[Scheduled Travel Time (min)])
 ```
 
-## Recommended pages
+## Model rule
 
-### 1 — Executive Overview
-KPI cards, monthly ridership trend, peak month and weighted ticketing mix.
+Keep monthly demand, station access and station-pair travel time at their own grains. Do not directly join them in a way that duplicates passenger totals.
 
-### 2 — Demand & Ticketing
-MoM growth, NCMC/QR/closed-loop shares and financial-year comparison.
+## Business communication rule
 
-### 3 — GTFS Network & First/Last Mile
-Station map/table, nearest-bus-stop distance, 500m bus-stop density, interchange status and first-mile bands.
+Power BI visuals should answer a business question first. Technical terms such as **GTFS**, `stop_id`, Haversine distance and `stop_times` belong in tooltips, methodology pages or documentation rather than headline KPI labels.
 
-### 4 — Scheduled Travel Time
-Adjacent-station travel-time distribution, longest scheduled segments, evidence volume and line/segment filters.
+## Interpretation rule
 
-### 5 — Decision Support
-Finding → evidence → implication → recommended next investigation, with explicit limitations.
+- Passenger totals = observed demand.
+- Bus-stop distance = proximity indicator.
+- Scheduled travel time = timetable information.
+- Priority Score = screening tool for deciding where to investigate next.
 
-## Integrity rule
-Static GTFS provides scheduled information, not observed congestion or real-time delay. Straight-line bus-stop distance is a first-mile proximity proxy, not a pedestrian-network route time. The screening index is an analytical prioritisation aid, not a transport-equity, accessibility-quality or passenger-experience score.
+None of these should be presented as proof of passenger satisfaction, equity, actual walking time or live traffic performance.
