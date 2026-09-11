@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import math
+import re
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -62,9 +63,25 @@ def percentile_rank(series: pd.Series, ascending: bool = True) -> pd.Series:
     return (clean - lo) / (hi - lo) if ascending else (hi - clean) / (hi - lo)
 
 
+def classify_route_type(value) -> str:
+    """Return metro/bus/other using numeric GTFS type plus feed-specific text fallbacks."""
+    text = str(value).strip().lower()
+    numeric = pd.to_numeric(pd.Series([value]), errors="coerce").iloc[0]
+    if pd.notna(numeric):
+        if numeric == 1:
+            return "metro"
+        if numeric == 3:
+            return "bus"
+    if re.search(r"(metro|subway|mass rapid|rail|cmrl)", text):
+        return "metro"
+    if re.search(r"(bus|mtc)", text):
+        return "bus"
+    return "other"
+
+
 def main():
     DATA_DIR.mkdir(exist_ok=True)
-    req = Request(GTFS_URL, headers={"User-Agent": "urban-mobility-portfolio-pipeline/1.1"})
+    req = Request(GTFS_URL, headers={"User-Agent": "urban-mobility-portfolio-pipeline/1.2"})
     with urlopen(req, timeout=90) as response:
         payload = response.read()
 
@@ -83,14 +100,18 @@ def main():
             ["trip_id", "arrival_time", "departure_time", "stop_id", "stop_sequence"],
         )
 
-    routes["route_type"] = pd.to_numeric(routes["route_type"], errors="coerce")
+    routes["transport_mode"] = routes["route_type"].map(classify_route_type)
     stops["stop_lat"] = pd.to_numeric(stops["stop_lat"], errors="coerce")
     stops["stop_lon"] = pd.to_numeric(stops["stop_lon"], errors="coerce")
     stop_times["stop_sequence"] = pd.to_numeric(stop_times["stop_sequence"], errors="coerce")
 
-    # GTFS route_type 1 = subway/metro, 3 = bus.
-    metro_routes = routes[routes["route_type"] == 1].copy()
-    bus_routes = routes[routes["route_type"] == 3].copy()
+    metro_routes = routes[routes["transport_mode"] == "metro"].copy()
+    bus_routes = routes[routes["transport_mode"] == "bus"].copy()
+    if metro_routes.empty:
+        raise RuntimeError(
+            "No metro routes detected in the GTFS feed. "
+            "The feed's route_type schema may differ; inspect routes.txt before generating accessibility metrics."
+        )
 
     metro_trip_ids = set(trips.loc[trips["route_id"].isin(metro_routes["route_id"]), "trip_id"])
     bus_trip_ids = set(trips.loc[trips["route_id"].isin(bus_routes["route_id"]), "trip_id"])
@@ -103,13 +124,18 @@ def main():
     metro_stops = metro_stops.dropna(subset=["stop_lat", "stop_lon"]).drop_duplicates("stop_id")
     bus_stops = bus_stops.dropna(subset=["stop_lat", "stop_lon"]).drop_duplicates("stop_id")
 
+    if metro_stops.empty:
+        raise RuntimeError(
+            f"Metro routes were detected ({len(metro_routes)}), but no metro stops were mapped through trips/stop_times. "
+            "Check route_id/trip_id relationships in the feed."
+        )
+
     metro_st = stop_times[stop_times["trip_id"].isin(metro_trip_ids)][["trip_id", "stop_id"]].merge(
         trips[["trip_id", "route_id"]], on="trip_id", how="left"
     )
     routes_per_stop = metro_st.groupby("stop_id")["route_id"].nunique().rename("metro_route_count")
     trip_count_per_stop = metro_st.groupby("stop_id")["trip_id"].nunique().rename("metro_trip_count")
 
-    # Scheduled travel time between consecutive metro stops.
     mt = stop_times[stop_times["trip_id"].isin(metro_trip_ids)].copy()
     mt = mt.sort_values(["trip_id", "stop_sequence"])
     mt["dep_sec"] = mt["departure_time"].map(gtfs_seconds)
@@ -117,7 +143,10 @@ def main():
     mt["next_stop_id"] = mt.groupby("trip_id")["stop_id"].shift(-1)
     mt["next_arr_sec"] = mt.groupby("trip_id")["arr_sec"].shift(-1)
     mt = mt[mt["next_stop_id"].notna()].copy()
-    mt["travel_time_min"] = (pd.to_numeric(mt["next_arr_sec"], errors="coerce") - pd.to_numeric(mt["dep_sec"], errors="coerce")) / 60.0
+    mt["travel_time_min"] = (
+        pd.to_numeric(mt["next_arr_sec"], errors="coerce")
+        - pd.to_numeric(mt["dep_sec"], errors="coerce")
+    ) / 60.0
     mt = mt[mt["travel_time_min"].between(0.1, 60, inclusive="both")]
 
     seg = mt.groupby(["stop_id", "next_stop_id"], as_index=False).agg(
@@ -126,21 +155,31 @@ def main():
     )
     seg = seg.rename(columns={"stop_id": "from_stop_id", "next_stop_id": "to_stop_id"})
     seg = seg.merge(
-        metro_stops[["stop_id", "stop_name"]].rename(columns={"stop_id": "from_stop_id", "stop_name": "from_station"}),
-        on="from_stop_id", how="left"
+        metro_stops[["stop_id", "stop_name"]].rename(
+            columns={"stop_id": "from_stop_id", "stop_name": "from_station"}
+        ),
+        on="from_stop_id",
+        how="left",
     )
     seg = seg.merge(
-        metro_stops[["stop_id", "stop_name"]].rename(columns={"stop_id": "to_stop_id", "stop_name": "to_station"}),
-        on="to_stop_id", how="left"
+        metro_stops[["stop_id", "stop_name"]].rename(
+            columns={"stop_id": "to_stop_id", "stop_name": "to_station"}
+        ),
+        on="to_stop_id",
+        how="left",
     )
     seg.to_csv(OUT_SEGMENTS, index=False)
 
-    # First/last-mile screening from metro stations to nearby GTFS bus stops.
-    bus_coords = list(bus_stops[["stop_id", "stop_name", "stop_lat", "stop_lon"]].itertuples(index=False))
+    bus_coords = list(
+        bus_stops[["stop_id", "stop_name", "stop_lat", "stop_lon"]].itertuples(index=False)
+    )
     rows = []
     for row in metro_stops.itertuples(index=False):
         if bus_coords:
-            distances = [haversine_m(row.stop_lat, row.stop_lon, b.stop_lat, b.stop_lon) for b in bus_coords]
+            distances = [
+                haversine_m(row.stop_lat, row.stop_lon, b.stop_lat, b.stop_lon)
+                for b in bus_coords
+            ]
             nearest_idx = min(range(len(distances)), key=distances.__getitem__)
             nearest = float(distances[nearest_idx])
             within_500 = int(sum(d <= 500 for d in distances))
@@ -150,21 +189,20 @@ def main():
         else:
             nearest, within_500, nearest_name, nearest_id = float("nan"), 0, None, None
 
-        rows.append({
-            "stop_id": row.stop_id,
-            "station_name": row.stop_name,
-            "latitude": row.stop_lat,
-            "longitude": row.stop_lon,
-            "nearest_bus_stop_m": round(nearest, 1) if not math.isnan(nearest) else None,
-            "bus_stops_within_500m": within_500,
-            "nearest_bus_stop": nearest_name,
-            "nearest_bus_stop_id": nearest_id,
-        })
+        rows.append(
+            {
+                "stop_id": row.stop_id,
+                "station_name": row.stop_name,
+                "latitude": row.stop_lat,
+                "longitude": row.stop_lon,
+                "nearest_bus_stop_m": round(nearest, 1) if not math.isnan(nearest) else None,
+                "bus_stops_within_500m": within_500,
+                "nearest_bus_stop": nearest_name,
+                "nearest_bus_stop_id": nearest_id,
+            }
+        )
 
     station_metrics = pd.DataFrame(rows)
-    if station_metrics.empty:
-        raise RuntimeError("No metro stops were derived from the GTFS feed; check route_type and trip mappings.")
-
     station_metrics = station_metrics.set_index("stop_id")
     station_metrics = station_metrics.join(routes_per_stop, how="left").join(trip_count_per_stop, how="left")
     station_metrics["metro_route_count"] = station_metrics["metro_route_count"].fillna(0).astype(int)
@@ -172,8 +210,12 @@ def main():
     station_metrics["interchange_flag"] = (station_metrics["metro_route_count"] > 1).astype(int)
 
     station_metrics["route_coverage_score"] = percentile_rank(station_metrics["metro_route_count"], ascending=True)
-    station_metrics["first_mile_proximity_score"] = percentile_rank(station_metrics["nearest_bus_stop_m"], ascending=False)
-    station_metrics["bus_stop_density_score"] = percentile_rank(station_metrics["bus_stops_within_500m"], ascending=True)
+    station_metrics["first_mile_proximity_score"] = percentile_rank(
+        station_metrics["nearest_bus_stop_m"], ascending=False
+    )
+    station_metrics["bus_stop_density_score"] = percentile_rank(
+        station_metrics["bus_stops_within_500m"], ascending=True
+    )
     station_metrics["network_first_mile_screening_index"] = (
         100
         * (
