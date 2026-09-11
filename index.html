@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Urban Mobility Service & Accessibility Optimization</title><script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>body{font-family:Arial,sans-serif;margin:0;background:#f5f7fb;color:#172033}.wrap{max-width:1180px;margin:auto;padding:28px}.hero,.card,.chart{background:#fff;border-radius:16px;box-shadow:0 4px 18px rgba(0,0,0,.06)}.hero{padding:25px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}.card{padding:18px}.small{font-size:13px;color:#687386}.kpi{font-size:28px;font-weight:700;margin-top:7px}.chart{margin-top:18px;padding:12px}@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}}</style></head>
+<body><div class="wrap">
+<section class="hero"><div class="small">Business Analyst Case Study</div><h1>Urban Mobility Service & Accessibility Optimization</h1><p>Evidence-led analysis of Chennai metropolitan public-transport demand, ticketing behaviour and network-connectivity signals.</p><p class="small"><b>Data integrity:</b> observed ridership comes from published CMRL passenger-flow reporting. Accessibility is a labelled network-structure proxy, not a measured equity or travel-time score.</p></section>
+<section class="grid"><div class="card"><div class="small">Mar 2026 ridership</div><div class="kpi">1.02 Cr</div></div><div class="card"><div class="small">Jul 2025 peak in FY2025-26</div><div class="kpi">1.05 Cr</div></div><div class="card"><div class="small">Mar 2026 NCMC share</div><div class="kpi">51.95%</div></div><div class="card"><div class="small">Distinct interchange stations in sample</div><div class="kpi">6</div></div></section>
+<div class="chart"><div id="ridership"></div></div><div class="chart"><div id="ticketmix"></div></div><div class="chart"><div id="access"></div></div></div>
+<script>
+const months=['2025-04','2025-05','2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03','2026-04','2026-05'];
+const ridership=[8759588,8909729,9221963,10468732,9896230,10146769,9327746,9286756,9466507,9321129,9618085,10184419,8977804,8965047];
+const ncmc=[48.29,45.88,47.76,49.33,49.23,51.22,51.02,52.21,51.43,49.92,51.06,51.95,50.33,47.43];
+const qr=[44.66,47.52,45.62,44.44,48.49,47.64,48.15,47.14,48.02,49.60,48.54,47.73,49.39,52.55];
+Plotly.newPlot('ridership',[{x:months,y:ridership,type:'bar',name:'Total Ridership'}],{title:'Monthly Metro Ridership (Apr 2025–May 2026)',yaxis:{title:'Passengers'},margin:{t:55,b:80,l:60,r:20}},{responsive:true});
+Plotly.newPlot('ticketmix',[{x:months,y:ncmc,type:'scatter',mode:'lines+markers',name:'NCMC %'},{x:months,y:qr,type:'scatter',mode:'lines+markers',name:'QR %'}],{title:'Ticketing Mix Trend',yaxis:{title:'Share (%)'},margin:{t:55,b:80,l:60,r:20}},{responsive:true});
+const stations=['Central','Egmore','CMBT','St. Thomas Mount','Nandanam','Alandur','Shenoy Nagar','Koyambedu','Anna Nagar Tower','Thirumangalam','Ashok Nagar','Vadapalani']; const scores=[100,100,100,100,100,100,50,50,50,50,50,50];
+Plotly.newPlot('access',[{x:stations,y:scores,type:'bar',name:'Connectivity proxy'}],{title:'Network Connectivity Proxy — Screening View',yaxis:{title:'Proxy score'},margin:{t:55,b:140,l:60,r:20}},{responsive:true});
+</script></body></html>
