@@ -14,7 +14,7 @@ Recommended checks:
 - `Closed Loop + QR Tickets + NCMC = Total Ridership`
 - Date sorting
 
-### Sheet 2 — Calculations
+### Sheet 2 — Demand_Calculations
 Create:
 
 `MoM Growth % = (Current Ridership / Previous Ridership) - 1`
@@ -25,34 +25,47 @@ Create:
 
 `Closed Loop Share % = Closed Loop / Total Ridership`
 
-Use a weighted annual ticketing share for period summaries rather than averaging monthly percentages.
+Use a weighted period ticketing share rather than averaging monthly percentages.
 
-### Sheet 3 — Station_Network
-Load `../data/station_accessibility_proxy.csv` as `Dim_Station`.
+### Sheet 3 — GTFS_Station
+Load `../data/gtfs_station_metrics.csv` after the GTFS refresh workflow runs.
 
 Recommended pivots:
-- Station count by network role
-- Interchange stations by line
-- Average proxy score by line
-- Accessibility band distribution
+- Median nearest bus-stop distance by line
+- Stations with >500m nearest bus stop
+- Bus stops within 500m by station
+- Interchange status and metro route coverage
+- Network + first-mile screening index distribution
 
-### Sheet 4 — Executive_Checks
+### Sheet 4 — GTFS_Travel_Time
+Load `../data/gtfs_metro_segment_travel_times.csv`.
+
+Recommended analysis:
+- Median scheduled travel time by adjacent station pair
+- Longest scheduled segments
+- Segment observation counts
+- Travel-time distribution by line where route labels are available
+
+### Sheet 5 — Executive_Checks
 Reconcile the Excel calculations against the dashboard:
 
 - Total selected-period ridership
 - Peak month
 - Weighted NCMC share
-- Distinct interchange count
+- Metro station count
+- Median nearest bus-stop distance
+- Longest scheduled metro segment
 
 ## Business-analysis outputs
 
-The goal is not simply to reproduce charts. Use the workbook to answer:
+Use the workbook to answer:
 
 1. Where are the strongest observed demand periods?
 2. How is ticketing behaviour changing over time?
-3. Which network roles are most common?
-4. Which stations/lines should be prioritised for deeper study?
-5. What additional data is needed before making an accessibility or investment decision?
+3. Which stations have weaker first/last-mile proximity?
+4. Which adjacent metro segments have longer scheduled travel times?
+5. Which network patterns should trigger deeper operational or pedestrian-access study?
+6. What additional observed data is needed before making an accessibility or investment decision?
 
 ## Integrity rule
-The station score is a screening proxy based on network structure. Do not label it as measured accessibility, travel time, socioeconomic access, passenger equity, or service quality.
+GTFS travel time is **scheduled timetable duration**, not observed traffic time. Bus-stop distance is a straight-line proximity measure, not a walking-network route. The screening index is an analytical prioritisation aid only.
