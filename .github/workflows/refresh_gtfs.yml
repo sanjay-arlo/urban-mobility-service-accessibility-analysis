@@ -1,0 +1,39 @@
+name: Refresh Chennai GTFS metrics
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+  push:
+    paths:
+      - "scripts/build_gtfs_accessibility.py"
+      - ".github/workflows/refresh_gtfs.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas
+
+      - name: Build GTFS-derived metrics
+        run: python scripts/build_gtfs_accessibility.py
+
+      - name: Commit derived data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/gtfs_station_metrics.csv data/gtfs_metro_segment_travel_times.csv data/gtfs_refresh_metadata.json
+          git diff --cached --quiet || git commit -m "Refresh GTFS-derived mobility metrics"
+          git push
