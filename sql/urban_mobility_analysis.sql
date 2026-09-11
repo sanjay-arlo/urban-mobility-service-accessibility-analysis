@@ -10,14 +10,35 @@ CREATE TABLE cmrl_passenger_flow (
   total_ridership INT NOT NULL
 );
 
-DROP TABLE IF EXISTS station_accessibility_proxy;
-CREATE TABLE station_accessibility_proxy (
-  line VARCHAR(20) NOT NULL,
-  station VARCHAR(150) NOT NULL,
-  network_role VARCHAR(30) NOT NULL,
-  interchange_flag TINYINT NOT NULL,
-  accessibility_proxy_score DECIMAL(6,2) NOT NULL,
-  accessibility_band VARCHAR(40) NOT NULL
+DROP TABLE IF EXISTS gtfs_station_metrics;
+CREATE TABLE gtfs_station_metrics (
+  stop_id VARCHAR(150) PRIMARY KEY,
+  station_name VARCHAR(200) NOT NULL,
+  latitude DECIMAL(10,7),
+  longitude DECIMAL(10,7),
+  nearest_bus_stop_m DECIMAL(10,1),
+  bus_stops_within_500m INT,
+  nearest_bus_stop VARCHAR(200),
+  nearest_bus_stop_id VARCHAR(150),
+  metro_route_count INT,
+  metro_trip_count INT,
+  interchange_flag TINYINT,
+  route_coverage_score DECIMAL(8,3),
+  first_mile_proximity_score DECIMAL(8,3),
+  bus_stop_density_score DECIMAL(8,3),
+  network_first_mile_screening_index DECIMAL(8,2),
+  first_mile_band VARCHAR(40)
+);
+
+DROP TABLE IF EXISTS gtfs_metro_segment_travel_times;
+CREATE TABLE gtfs_metro_segment_travel_times (
+  from_stop_id VARCHAR(150),
+  to_stop_id VARCHAR(150),
+  from_station VARCHAR(200),
+  to_station VARCHAR(200),
+  median_scheduled_travel_time_min DECIMAL(8,2),
+  trip_observations INT,
+  PRIMARY KEY (from_stop_id, to_stop_id)
 );
 
 -- 1. Monthly ridership trend
@@ -37,11 +58,11 @@ SELECT month, total_ridership,
 FROM x
 ORDER BY month;
 
--- 3. Ticketing mix by month
+-- 3. Ticketing mix
 SELECT month,
-       ROUND(closed_loop * 100.0 / NULLIF(total_ridership,0), 2) AS closed_loop_pct,
-       ROUND(qr_tickets * 100.0 / NULLIF(total_ridership,0), 2) AS qr_pct,
-       ROUND(ncmc * 100.0 / NULLIF(total_ridership,0), 2) AS ncmc_pct
+       ROUND(closed_loop * 100.0 / NULLIF(total_ridership, 0), 2) AS closed_loop_pct,
+       ROUND(qr_tickets * 100.0 / NULLIF(total_ridership, 0), 2) AS qr_pct,
+       ROUND(ncmc * 100.0 / NULLIF(total_ridership, 0), 2) AS ncmc_pct
 FROM cmrl_passenger_flow
 ORDER BY month;
 
@@ -51,7 +72,7 @@ FROM cmrl_passenger_flow
 ORDER BY total_ridership DESC
 LIMIT 10;
 
--- 5. Financial-year demand summary (financial year must be derived from month)
+-- 5. Financial-year demand summary
 WITH fy AS (
   SELECT *,
          CASE
@@ -69,40 +90,44 @@ FROM fy
 GROUP BY financial_year
 ORDER BY financial_year;
 
--- 6. Interchange stations
-SELECT station,
-       GROUP_CONCAT(DISTINCT line ORDER BY line SEPARATOR ', ') AS lines,
-       MAX(accessibility_proxy_score) AS proxy_score
-FROM station_accessibility_proxy
-WHERE interchange_flag = 1
-GROUP BY station
-ORDER BY proxy_score DESC, station;
+-- 6. Stations with weak first-mile proximity
+SELECT station_name, nearest_bus_stop_m, bus_stops_within_500m,
+       metro_route_count, interchange_flag,
+       network_first_mile_screening_index
+FROM gtfs_station_metrics
+WHERE nearest_bus_stop_m > 500
+ORDER BY nearest_bus_stop_m DESC;
 
--- 7. Network-role mix
-SELECT network_role,
-       COUNT(*) AS station_count,
-       ROUND(AVG(accessibility_proxy_score), 2) AS avg_proxy_score
-FROM station_accessibility_proxy
-GROUP BY network_role
-ORDER BY station_count DESC;
+-- 7. Strong first-mile / network screening candidates
+SELECT station_name, nearest_bus_stop_m, bus_stops_within_500m,
+       metro_route_count, interchange_flag,
+       network_first_mile_screening_index
+FROM gtfs_station_metrics
+ORDER BY network_first_mile_screening_index DESC
+LIMIT 15;
 
--- 8. Average proxy by line
-SELECT line,
-       COUNT(*) AS station_count,
-       ROUND(AVG(accessibility_proxy_score), 2) AS avg_proxy_score,
-       SUM(interchange_flag) AS interchange_stations
-FROM station_accessibility_proxy
-GROUP BY line
-ORDER BY avg_proxy_score DESC;
+-- 8. Interchange and network coverage
+SELECT station_name, metro_route_count, metro_trip_count,
+       interchange_flag, network_first_mile_screening_index
+FROM gtfs_station_metrics
+ORDER BY metro_route_count DESC, metro_trip_count DESC;
 
--- 9. Screening candidates for deeper accessibility study.
--- These are ordinary operational stations under the current proxy definition.
-SELECT station, line, accessibility_proxy_score, accessibility_band
-FROM station_accessibility_proxy
-WHERE accessibility_band LIKE 'Basic%'
-ORDER BY accessibility_proxy_score, station;
+-- 9. Scheduled metro travel-time hotspots
+SELECT from_station, to_station,
+       median_scheduled_travel_time_min, trip_observations
+FROM gtfs_metro_segment_travel_times
+ORDER BY median_scheduled_travel_time_min DESC
+LIMIT 15;
 
--- 10. Methodology note:
--- The accessibility proxy is a network-structure screening signal only.
--- It must not be interpreted as measured travel time, socioeconomic access,
--- passenger equity, service quality or customer satisfaction.
+-- 10. Planning screen: longer first-mile distance + limited nearby bus coverage
+SELECT station_name, nearest_bus_stop_m, bus_stops_within_500m,
+       metro_route_count, interchange_flag
+FROM gtfs_station_metrics
+WHERE nearest_bus_stop_m > 500
+  AND bus_stops_within_500m <= 2
+ORDER BY nearest_bus_stop_m DESC;
+
+-- IMPORTANT:
+-- GTFS scheduled travel time is timetable-derived, not observed traffic time.
+-- First-mile distance is straight-line proximity to a GTFS bus stop, not walking-network travel time.
+-- The screening index is an analytical prioritisation aid, not a transport-equity or service-quality score.
