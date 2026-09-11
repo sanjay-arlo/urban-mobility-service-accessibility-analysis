@@ -1,0 +1,22 @@
+{
+  "generated_at_utc": "2026-09-11T11:20:48.882399+00:00",
+  "cmrl_source_url": "https://github.com/ungalsoththu/ChennaiGTFS/raw/main/data/cmrl-gtfs.zip",
+  "mtc_source_url": "https://github.com/ungalsoththu/ChennaiGTFS/raw/main/data/mtc-gtfs.zip",
+  "source_description": "Separate Chennai CMRL metro and MTC bus static GTFS feeds maintained by UngalSoththu.",
+  "cmrl_route_count": 3,
+  "mtc_route_count": 4611,
+  "metro_stop_count": 4,
+  "bus_stop_count": 5477,
+  "metro_segment_count": 6,
+  "metrics": {
+    "scheduled_travel_time": "Median scheduled minutes between consecutive CMRL stops derived from stop_times",
+    "first_mile": "Straight-line distance from each CMRL station to nearest MTC bus stop",
+    "first_mile_500m": "Count of MTC bus stops within 500m straight-line radius",
+    "screening_index": "Equal-weight normalized combination of route coverage, inverse nearest-bus-stop distance and 500m bus-stop density; screening only"
+  },
+  "limitations": [
+    "Static GTFS represents scheduled service, not observed traffic or real-time delays.",
+    "Straight-line first/last-mile distances are proximity proxies, not pedestrian network travel distance.",
+    "The source feeds are community-maintained and are not presented as official CMRL/CUMTA open-data feeds."
+  ]
+}

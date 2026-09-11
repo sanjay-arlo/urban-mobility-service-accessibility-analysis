@@ -1,0 +1,7 @@
+from_stop_id,to_stop_id,median_scheduled_travel_time_min,trip_observations,from_station,to_station
+CMRL_01,CMRL_26,60.0,3,Wimco Nagar Depot,Chennai International Airport
+CMRL_26,CMRL_01,60.0,3,Chennai International Airport,Wimco Nagar Depot
+CMRL_26,CMRL_G01,60.0,3,Chennai International Airport,Puratchi Thalaivar Dr. M.G. Ramachandran Central
+CMRL_G01,CMRL_26,60.0,3,Puratchi Thalaivar Dr. M.G. Ramachandran Central,Chennai International Airport
+CMRL_G01,CMRL_G18,60.0,3,Puratchi Thalaivar Dr. M.G. Ramachandran Central,St. Thomas Mount
+CMRL_G18,CMRL_G01,60.0,3,St. Thomas Mount,Puratchi Thalaivar Dr. M.G. Ramachandran Central
