@@ -7,31 +7,32 @@
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <style>
-:root{--bg:#0b1220;--panel:#121a2b;--text:#eef3ff;--muted:#9aa7bf;--line:#27324a;--accent:#7c9cff;--good:#85d6a7;}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0b1220,#0e1628);color:var(--text);font-family:Inter,Arial,sans-serif}.wrap{max-width:1450px;margin:auto;padding:28px 22px 50px}.hero,.card,.chart,.decision{background:rgba(18,26,43,.95);border:1px solid var(--line);border-radius:16px}.hero{padding:26px;margin-bottom:16px}.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}.hero h1{margin:8px 0 10px;font-size:38px;line-height:1.1}.hero p{margin:0;color:var(--muted);line-height:1.6;max-width:980px}.filters{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.filters label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}select{background:#0f1728;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:190px}.status{font-size:12px;color:var(--muted);margin:8px 0 14px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{padding:18px}.label{font-size:12px;color:var(--muted)}.kpi{font-size:28px;font-weight:800;margin-top:7px}.sub{font-size:12px;color:#78859d;margin-top:4px}.section{margin-top:20px}.section h2{font-size:18px;margin:0 0 12px}.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}.chart{min-height:420px;padding:8px}.wide{grid-column:1/-1}.decision{margin-top:18px;padding:20px}.decision-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.decision-card{border:1px solid var(--line);border-radius:14px;padding:16px}.decision-card b{display:block;margin-bottom:7px}.decision-card p{margin:0;color:var(--muted);line-height:1.55;font-size:14px}.note{margin-top:16px;padding:14px 16px;border-radius:12px;background:#151e32;border:1px solid var(--line);color:#abb7cf;line-height:1.55}.error{padding:16px;border:1px solid #70404a;background:#2a1720;border-radius:12px;color:#ffd7df}.footer{margin-top:20px;color:#78859d;font-size:12px}.footer a{color:#afbee5}@media(max-width:980px){.grid{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}.decision-grid{grid-template-columns:1fr}}@media(max-width:560px){.grid{grid-template-columns:1fr}.hero h1{font-size:30px}.wrap{padding:20px 14px}select{width:100%;min-width:0}}
+:root{--bg:#0b1220;--panel:#121a2b;--text:#eef3ff;--muted:#9aa7bf;--line:#27324a;--accent:#7c9cff}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0b1220,#0e1628);color:var(--text);font-family:Inter,Arial,sans-serif}.wrap{max-width:1480px;margin:auto;padding:28px 22px 50px}.hero,.card,.chart,.decision{background:rgba(18,26,43,.96);border:1px solid var(--line);border-radius:16px}.hero{padding:28px;margin-bottom:16px}.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}.hero h1{margin:8px 0 10px;font-size:38px;line-height:1.1}.hero p{margin:0;color:var(--muted);line-height:1.6;max-width:1080px}.filters{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.filters label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}select{background:#0f1728;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:190px}.status{font-size:12px;color:var(--muted);margin:8px 0 14px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}.card{padding:18px}.label{font-size:12px;color:var(--muted)}.kpi{font-size:26px;font-weight:800;margin-top:7px}.sub{font-size:12px;color:#78859d;margin-top:4px}.section{margin-top:20px}.section h2{font-size:18px;margin:0 0 12px}.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}.chart{min-height:420px;padding:8px}.wide{grid-column:1/-1}.decision{margin-top:18px;padding:20px}.decision-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.decision-card{border:1px solid var(--line);border-radius:14px;padding:16px}.decision-card b{display:block;margin-bottom:7px}.decision-card p{margin:0;color:var(--muted);line-height:1.55;font-size:14px}.note{margin-top:16px;padding:14px 16px;border-radius:12px;background:#151e32;border:1px solid var(--line);color:#abb7cf;line-height:1.55}.error{padding:16px;border:1px solid #70404a;background:#2a1720;border-radius:12px;color:#ffd7df}.footer{margin-top:20px;color:#78859d;font-size:12px}.footer a{color:#afbee5}@media(max-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:980px){.charts{grid-template-columns:1fr}.decision-grid{grid-template-columns:1fr}}@media(max-width:700px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.grid{grid-template-columns:1fr}.hero h1{font-size:30px}.wrap{padding:20px 14px}select{width:100%;min-width:0}}
 </style>
 </head>
 <body>
 <div class="wrap">
 <section class="hero">
-<div class="eyebrow">Chennai Metro • Business Analysis Case Study</div>
+<div class="eyebrow">Chennai Multimodal Mobility • Business Analysis Case Study</div>
 <h1>Urban Mobility Service & Accessibility Optimization</h1>
-<p>Decision-oriented analysis of Chennai Metro ridership, ticketing behaviour and network-connectivity signals, with an explicit separation between observed demand and screening-level accessibility evidence.</p>
+<p>Evidence-led analysis combining CMRL ridership with GTFS-based network structure, scheduled metro segment travel time and first/last-mile bus-stop proximity. The model separates observed demand from analytical screening measures.</p>
 </section>
 
 <div class="filters">
 <label>Financial Year<select id="fy"><option value="All">All years</option></select></label>
 <label>Network role<select id="role"><option value="All">All roles</option></select></label>
 <label>Line<select id="line"><option value="All">All lines</option></select></label>
-<label>Accessibility band<select id="band"><option value="All">All bands</option></select></label>
+<label>First-mile band<select id="band"><option value="All">All bands</option></select></label>
 </div>
 <div id="status" class="status">Loading repository data…</div>
 
 <div class="grid">
 <div class="card"><div class="label">Observed ridership</div><div id="kpiRidership" class="kpi">—</div><div class="sub">Total in selected period</div></div>
 <div class="card"><div class="label">Peak month</div><div id="kpiPeak" class="kpi">—</div><div class="sub">Highest monthly ridership</div></div>
-<div class="card"><div class="label">NCMC share</div><div id="kpiNcmc" class="kpi">—</div><div class="sub">Weighted share of selected months</div></div>
-<div class="card"><div class="label">Interchange stations</div><div id="kpiInterchange" class="kpi">—</div><div class="sub">Unique stations in network data</div></div>
+<div class="card"><div class="label">NCMC share</div><div id="kpiNcmc" class="kpi">—</div><div class="sub">Weighted share</div></div>
+<div class="card"><div class="label">Metro stations</div><div id="kpiStations" class="kpi">—</div><div class="sub">GTFS-derived network stops</div></div>
+<div class="card"><div class="label">Median bus-stop distance</div><div id="kpiFirstMile" class="kpi">—</div><div class="sub">Nearest GTFS bus stop</div></div>
 </div>
 
 <section class="section"><h2>Demand & Ticketing</h2><div class="charts">
@@ -41,65 +42,68 @@
 <div id="fycompare" class="chart"></div>
 </div></section>
 
-<section class="section"><h2>Network Accessibility Screening</h2><div class="charts">
+<section class="section"><h2>GTFS Network & First/Last Mile</h2><div class="charts">
 <div id="access" class="chart"></div>
-<div id="roles" class="chart"></div>
-<div id="lineproxy" class="chart wide"></div>
+<div id="firstmile" class="chart"></div>
+<div id="traveltime" class="chart"></div>
+<div id="segment" class="chart"></div>
+<div id="network" class="chart wide"></div>
 </div></section>
 
 <section class="decision">
 <h2>Decision Support</h2>
 <div class="decision-grid">
 <div class="decision-card"><b>Demand signal</b><p id="demandNote">—</p></div>
-<div class="decision-card"><b>Ticketing signal</b><p id="ticketNote">—</p></div>
-<div class="decision-card"><b>Planning implication</b><p id="planningNote">—</p></div>
+<div class="decision-card"><b>First/last-mile signal</b><p id="firstMileNote">—</p></div>
+<div class="decision-card"><b>Travel-time signal</b><p id="travelNote">—</p></div>
 </div>
-<div class="note"><strong>Methodology:</strong> Ridership and ticketing metrics are calculated from the CMRL passenger-flow CSV. Station accessibility is a network-structure proxy based on interchange/network-role information; it is not measured travel time, socioeconomic accessibility, passenger equity, or service quality.</div>
+<div class="note"><strong>Methodology:</strong> CMRL ridership is observed passenger-flow data. GTFS travel time is <strong>scheduled in-vehicle time</strong> derived from stop_times, not observed traffic. First/last-mile distance is straight-line distance to the nearest GTFS bus stop, not pedestrian network distance. The screening index is a normalized analytical aid, not an accessibility-equity or service-quality measure.</div>
 </section>
 
 <div class="footer">Built by <b>Sanjay Arlo</b> • <a href="https://github.com/sanjay-arlo/urban-mobility-service-accessibility-analysis">GitHub repository</a></div>
 </div>
 <script>
-let ridershipData=[], stationData=[];
+let ridershipData=[], stationData=[], segmentData=[];
 const base={paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#eef3ff'},margin:{l:58,r:18,t:58,b:62},xaxis:{gridcolor:'#27324a'},yaxis:{gridcolor:'#27324a'},legend:{orientation:'h',y:-.2}};
 const cfg={responsive:true,displaylogo:false};
 const draw=(id,data,extra={})=>Plotly.newPlot(id,data,{...base,...extra},cfg);
 const uniq=a=>[...new Set(a.filter(Boolean))];
 const sum=a=>a.reduce((x,y)=>x+y,0);
-function countBy(a,key){const o={};a.forEach(v=>{const k=key(v);o[k]=(o[k]||0)+1});return o}
-function median(a){if(!a.length)return 0;const s=[...a].sort((a,b)=>a-b),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2}
-function fill(id,vals){const e=document.getElementById(id);vals.sort((a,b)=>String(a).localeCompare(String(b))).forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;e.appendChild(o)})}
+const median=a=>{if(!a.length)return 0;const s=[...a].sort((a,b)=>a-b),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2};
+const countBy=(a,key)=>{const o={};a.forEach(v=>{const k=key(v);o[k]=(o[k]||0)+1});return o};
+const fill=(id,vals)=>{const e=document.getElementById(id);vals.sort((a,b)=>String(a).localeCompare(String(b))).forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;e.appendChild(o)})};
 function currentFilters(){return{fy:document.getElementById('fy').value,role:document.getElementById('role').value,line:document.getElementById('line').value,band:document.getElementById('band').value}}
-function filteredStations(f){return stationData.filter(x=>(f.role==='All'||x.network_role===f.role)&&(f.line==='All'||x.line===f.line)&&(f.band==='All'||x.accessibility_band===f.band))}
+function filteredStations(f){return stationData.filter(x=>(f.role==='All'||x.network_role===f.role)&&(f.line==='All'||x.line===f.line)&&(f.band==='All'||x.first_mile_band===f.band))}
 function render(){
 const f=currentFilters();
 const months=ridershipData.filter(x=>f.fy==='All'||x.fy===f.fy);
 const total=sum(months.map(x=>x.total_ridership));
-const peak=months.reduce((a,b)=>b.total_ridership>a.total_ridership?b:a,null);
-const qr=sum(months.map(x=>x.qr_tickets)),ncmc=sum(months.map(x=>x.ncmc)),closed=sum(months.map(x=>x.closed_loop));
-const station=filteredStations(f);
-const uniqueInterchanges=new Set(station.filter(x=>x.interchange_flag==='1'||x.interchange_flag===1).map(x=>x.station));
-const filteredMonths=months.length?months:ridershipData;
-const wNcmc=sum(filteredMonths.map(x=>x.ncmc)),wTotal=sum(filteredMonths.map(x=>x.total_ridership));
+const peak=months.reduce((a,b)=>!a||b.total_ridership>a.total_ridership?b:a,null);
+const ncmc=sum(months.map(x=>x.ncmc)),wTotal=sum(months.map(x=>x.total_ridership));
+const station=filteredStations(f),allStationIds=new Set(station.map(x=>x.stop_id));
+const firstMileValues=station.map(x=>Number(x.nearest_bus_stop_m)).filter(Number.isFinite);
+const selectedSegments=segmentData.filter(x=>allStationIds.has(x.from_stop_id)||allStationIds.has(x.to_stop_id));
+const kpiMonths=months.length?months:ridershipData;
 document.getElementById('kpiRidership').textContent=(total/1e7).toFixed(2)+' Cr';
 document.getElementById('kpiPeak').textContent=peak?peak.month:'—';
-document.getElementById('kpiNcmc').textContent=(wNcmc/wTotal*100).toFixed(1)+'%';
-document.getElementById('kpiInterchange').textContent=uniqueInterchanges.size;
-document.getElementById('status').textContent=`Showing ${months.length} monthly ridership records and ${station.length} station records. Metrics are calculated from repository CSV files.`;
-const growth=filteredMonths.map((x,i)=>({month:x.month,g:i?((x.total_ridership-filteredMonths[i-1].total_ridership)/filteredMonths[i-1].total_ridership*100):null}));
-draw('ridership',[{x:filteredMonths.map(x=>x.month),y:filteredMonths.map(x=>x.total_ridership),type:'bar',name:'Ridership'}],{title:'Monthly Ridership',yaxis:{title:'Passengers'}});
-draw('ticketing',[{x:filteredMonths.map(x=>x.month),y:filteredMonths.map(x=>x.ncmc_share_pct),type:'scatter',mode:'lines+markers',name:'NCMC %'},{x:filteredMonths.map(x=>x.month),y:filteredMonths.map(x=>x.qr_tickets_share_pct),type:'scatter',mode:'lines+markers',name:'QR %'},{x:filteredMonths.map(x=>x.month),y:filteredMonths.map(x=>x.closed_loop_share_pct),type:'scatter',mode:'lines+markers',name:'Closed-loop %'}],{title:'Ticketing Mix Trend',yaxis:{title:'Share (%)'}});
-draw('growth',[{x:growth.map(x=>x.month),y:growth.map(x=>x.g),type:'bar',name:'MoM growth'}],{title:'Month-over-Month Ridership Growth',yaxis:{title:'Growth (%)'}});
-const fyCounts={};filteredMonths.forEach(x=>fyCounts[x.fy]=(fyCounts[x.fy]||0)+x.total_ridership);draw('fycompare',[{x:Object.keys(fyCounts),y:Object.values(fyCounts),type:'bar'}],{title:'Ridership by Financial Year',yaxis:{title:'Passengers'}});
-const access=countBy(station,x=>x.accessibility_band);draw('access',[{x:Object.keys(access),y:Object.values(access),type:'bar'}],{title:'Accessibility Screening Bands',yaxis:{title:'Stations'}});
-const roles=countBy(station,x=>x.network_role);draw('roles',[{x:Object.keys(roles),y:Object.values(roles),type:'bar'}],{title:'Network Role Mix',yaxis:{title:'Stations'}});
-const lines={};station.forEach(x=>(lines[x.line]??=[]).push(Number(x.accessibility_proxy_score)));const ls=Object.entries(lines).map(([k,v])=>[k,+(sum(v)/v.length).toFixed(1)]);draw('lineproxy',[{x:ls.map(x=>x[0]),y:ls.map(x=>x[1]),type:'bar'}],{title:'Average Accessibility Proxy by Line',yaxis:{title:'Proxy score'}});
-const bestDemand=filteredMonths.reduce((a,b)=>b.total_ridership>a.total_ridership?b:a,null);document.getElementById('demandNote').textContent=bestDemand?`The highest observed month in the selected view is ${bestDemand.month} with ${(bestDemand.total_ridership/1e6).toFixed(2)} million passengers.`:'No demand record available.';
-document.getElementById('ticketNote').textContent=wTotal?`Across the selected period, NCMC represents ${(wNcmc/wTotal*100).toFixed(1)}% of recorded passenger volume; QR represents ${(qr/wTotal*100).toFixed(1)}%.`:'No ticketing data available.';
-document.getElementById('planningNote').textContent=`Use high-demand periods and network-role concentration as screening signals for deeper operational study. Do not treat the proxy score as a direct accessibility or equity measure.`;
+document.getElementById('kpiNcmc').textContent=(ncmc/wTotal*100).toFixed(1)+'%';
+document.getElementById('kpiStations').textContent=station.length;
+document.getElementById('kpiFirstMile').textContent=firstMileValues.length?Math.round(median(firstMileValues))+' m':'—';
+document.getElementById('status').textContent=`Showing ${months.length} monthly ridership records, ${station.length} GTFS station records and ${selectedSegments.length} scheduled metro segment records.`;
+draw('ridership',[{x:kpiMonths.map(x=>x.month),y:kpiMonths.map(x=>x.total_ridership),type:'bar',name:'Ridership'}],{title:'Monthly Ridership',yaxis:{title:'Passengers'}});
+draw('ticketing',[{x:kpiMonths.map(x=>x.month),y:kpiMonths.map(x=>x.ncmc_share_pct),type:'scatter',mode:'lines+markers',name:'NCMC %'},{x:kpiMonths.map(x=>x.month),y:kpiMonths.map(x=>x.qr_tickets_share_pct),type:'scatter',mode:'lines+markers',name:'QR %'},{x:kpiMonths.map(x=>x.month),y:kpiMonths.map(x=>x.closed_loop_share_pct),type:'scatter',mode:'lines+markers',name:'Closed-loop %'}],{title:'Ticketing Mix Trend',yaxis:{title:'Share (%)'}});
+const growth=kpiMonths.map((x,i)=>i?((x.total_ridership-kpiMonths[i-1].total_ridership)/kpiMonths[i-1].total_ridership*100):null);draw('growth',[{x:kpiMonths.map(x=>x.month),y:growth,type:'bar'}],{title:'Month-over-Month Ridership Growth',yaxis:{title:'Growth (%)'}});
+const fyCounts={};kpiMonths.forEach(x=>fyCounts[x.fy]=(fyCounts[x.fy]||0)+x.total_ridership);draw('fycompare',[{x:Object.keys(fyCounts),y:Object.values(fyCounts),type:'bar'}],{title:'Ridership by Financial Year',yaxis:{title:'Passengers'}});
+const bands=countBy(station,x=>x.first_mile_band);draw('access',[{x:Object.keys(bands),y:Object.values(bands),type:'bar'}],{title:'First-Mile Proximity Bands',yaxis:{title:'Stations'}});
+const fmTop=station.map(x=>({name:x.station_name,dist:Number(x.nearest_bus_stop_m),stops:Number(x.bus_stops_within_500m)})).filter(x=>Number.isFinite(x.dist)).sort((a,b)=>a.dist-b.dist).slice(0,15);draw('firstmile',[{x:fmTop.map(x=>x.name),y:fmTop.map(x=>x.dist),type:'bar',hovertemplate:'%{x}<br>%{y:.0f} m<extra></extra>'}],{title:'Nearest Bus Stop Distance — Best Connected Stations',xaxis:{tickangle:-40},yaxis:{title:'Straight-line distance (m)'}});
+const tt=selectedSegments.filter(x=>Number.isFinite(Number(x.median_scheduled_travel_time_min))).sort((a,b)=>Number(b.median_scheduled_travel_time_min)-Number(a.median_scheduled_travel_time_min)).slice(0,15);draw('traveltime',[{x:tt.map(x=>x.from_station+' → '+x.to_station),y:tt.map(x=>Number(x.median_scheduled_travel_time_min)),type:'bar',hovertemplate:'%{x}<br>%{y:.1f} min<extra></extra>'}],{title:'Longest Scheduled Metro Segments',xaxis:{tickangle:-45},yaxis:{title:'Scheduled travel time (min)'}});
+const segSummary=selectedSegments.map(x=>Number(x.median_scheduled_travel_time_min)).filter(Number.isFinite);draw('segment',[{x:['Median','P90'],y:[median(segSummary),segSummary.length?segSummary.sort((a,b)=>a-b)[Math.floor(segSummary.length*.9)]:0],type:'bar'}],{title:'Scheduled Segment Travel-Time Summary',yaxis:{title:'Minutes'}});
+const lineGroups={};station.forEach(x=>(lineGroups[x.line]??=[]).push(Number(x.network_first_mile_screening_index)));const lineVals=Object.entries(lineGroups).map(([k,v])=>[k,+(sum(v.filter(Number.isFinite))/v.filter(Number.isFinite).length).toFixed(1)]);draw('network',[{x:lineVals.map(x=>x[0]),y:lineVals.map(x=>x[1]),type:'bar'}],{title:'Network + First-Mile Screening Index by Line',yaxis:{title:'Index (0–100), analytical screening only'}});
+const bestDemand=months.reduce((a,b)=>!a||b.total_ridership>a.total_ridership?b:a,null);document.getElementById('demandNote').textContent=bestDemand?`Peak observed demand in the selected period is ${bestDemand.month} at ${(bestDemand.total_ridership/1e6).toFixed(2)} million passengers.`:'No demand record available.';
+const weak=station.filter(x=>Number(x.nearest_bus_stop_m)>500).length;document.getElementById('firstMileNote').textContent=station.length?`${weak} of ${station.length} selected stations sit more than 500m from the nearest GTFS bus stop by straight-line distance. Use these as candidates for deeper pedestrian/feeder-service study.`:'No station data available.';
+document.getElementById('travelNote').textContent=segSummary.length?`Across ${segSummary.length} selected adjacent-station observations, the median scheduled travel time is ${median(segSummary).toFixed(1)} minutes. This is timetable-derived, not observed congestion time.`:'No GTFS travel-time data available.';
 }
-function loadRidership(){return new Promise((resolve,reject)=>Papa.parse('data/cmrl_passenger_flow.csv',{download:true,header:true,skipEmptyLines:true,complete:r=>{ridershipData=r.data.map(x=>({...x,total_ridership:Number(x.total_ridership),qr_tickets:Number(x.qr_tickets),ncmc:Number(x.ncmc),closed_loop:Number(x.closed_loop)}));resolve()},error:reject}))}
-function loadStations(){return new Promise((resolve,reject)=>Papa.parse('data/station_accessibility_proxy.csv',{download:true,header:true,skipEmptyLines:true,complete:r=>{stationData=r.data;resolve()},error:reject}))}
-Promise.all([loadRidership(),loadStations()]).then(()=>{fill('fy',uniq(ridershipData.map(x=>x.fy)));fill('role',uniq(stationData.map(x=>x.network_role)));fill('line',uniq(stationData.map(x=>x.line)));fill('band',uniq(stationData.map(x=>x.accessibility_band)));['fy','role','line','band'].forEach(id=>document.getElementById(id).addEventListener('change',render));render()}).catch(()=>{document.getElementById('status').innerHTML='<div class="error">Unable to load repository data. Open the dashboard through GitHub Pages or a local HTTP server.</div>'});
+function parseCsv(path){return new Promise((resolve,reject)=>Papa.parse(path,{download:true,header:true,skipEmptyLines:true,complete:r=>resolve(r.data),error:reject}))}
+Promise.all([parseCsv('data/cmrl_passenger_flow.csv'),parseCsv('data/gtfs_station_metrics.csv'),parseCsv('data/gtfs_metro_segment_travel_times.csv')]).then(([r,s,t])=>{ridershipData=r;stationData=s;segmentData=t;fill('fy',uniq(r.map(x=>x.fy)));fill('role',uniq(s.map(x=>x.network_role)));fill('line',uniq(s.map(x=>x.line)));fill('band',uniq(s.map(x=>x.first_mile_band)));['fy','role','line','band'].forEach(id=>document.getElementById(id).addEventListener('change',render));render()}).catch(()=>{document.getElementById('status').innerHTML='<div class="error">GTFS-derived files are not available yet. The GitHub Actions refresh workflow must run once to generate them. The static repository remains usable, but the enhanced GTFS views require those derived files.</div>'});
 </script>
 </body></html>
