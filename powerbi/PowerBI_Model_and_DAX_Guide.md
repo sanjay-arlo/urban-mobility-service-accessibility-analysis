@@ -1,6 +1,8 @@
 # Power BI Model & DAX Guide
 
-## Model
+This file defines the recommended Power BI implementation. It is a **model/DAX specification**, not a claim that a `.pbix` file is stored in this repository.
+
+## Data model
 
 ### Fact_Ridership
 - Month
@@ -19,30 +21,21 @@
 - Accessibility Proxy Score
 - Accessibility Band
 
-Keep ridership and station/network data at their own grains. Do not create artificial many-to-many joins just to make visuals work.
+Keep ridership and station/network data at their own grains. Do not create a many-to-many relationship simply to make a visual work.
 
-## DAX Measures
+## Core measures
 
 ```DAX
 Total Ridership = SUM(Fact_Ridership[Total Ridership])
 
 QR Share % =
-DIVIDE(
-    SUM(Fact_Ridership[QR Tickets]),
-    [Total Ridership]
-)
+DIVIDE(SUM(Fact_Ridership[QR Tickets]), [Total Ridership])
 
 NCMC Share % =
-DIVIDE(
-    SUM(Fact_Ridership[NCMC]),
-    [Total Ridership]
-)
+DIVIDE(SUM(Fact_Ridership[NCMC]), [Total Ridership])
 
 Closed Loop Share % =
-DIVIDE(
-    SUM(Fact_Ridership[Closed Loop]),
-    [Total Ridership]
-)
+DIVIDE(SUM(Fact_Ridership[Closed Loop]), [Total Ridership])
 
 MoM Growth % =
 VAR CurrentValue = [Total Ridership]
@@ -64,19 +57,19 @@ Avg Accessibility Proxy =
 AVERAGE(Dim_Station[Accessibility Proxy Score])
 ```
 
-## Dashboard Pages
+## Recommended pages
 
-### Page 1 — Executive Overview
+### 1 — Executive Overview
 KPI cards, monthly ridership trend, peak month and ticketing mix.
 
-### Page 2 — Demand & Ticketing
+### 2 — Demand & Ticketing
 MoM growth, NCMC/QR/closed-loop shares and financial-year comparison.
 
-### Page 3 — Network Accessibility
-Station connectivity, interchange locations, proxy-score distribution and filters.
+### 3 — Network Accessibility Screening
+Station connectivity, interchange locations, proxy-score distribution and network filters.
 
-### Page 4 — Decision Support
-Finding → evidence → implication → recommended action, plus limitations.
+### 4 — Decision Support
+Finding → evidence → implication → recommended next investigation, with limitations.
 
-## Integrity Rule
-Never present the accessibility proxy as observed accessibility, passenger satisfaction, travel time, transport equity or service quality.
+## Integrity rule
+Never present the accessibility proxy as observed accessibility, passenger satisfaction, travel time, transport equity, or service quality. It is a screening indicator derived from network structure.
