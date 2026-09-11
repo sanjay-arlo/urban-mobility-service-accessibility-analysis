@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-09-11T11:20:48.882399+00:00",
+  "generated_at_utc": "2026-09-11T11:21:35.833394+00:00",
   "cmrl_source_url": "https://github.com/ungalsoththu/ChennaiGTFS/raw/main/data/cmrl-gtfs.zip",
   "mtc_source_url": "https://github.com/ungalsoththu/ChennaiGTFS/raw/main/data/mtc-gtfs.zip",
   "source_description": "Separate Chennai CMRL metro and MTC bus static GTFS feeds maintained by UngalSoththu.",
@@ -12,7 +12,9 @@
     "scheduled_travel_time": "Median scheduled minutes between consecutive CMRL stops derived from stop_times",
     "first_mile": "Straight-line distance from each CMRL station to nearest MTC bus stop",
     "first_mile_500m": "Count of MTC bus stops within 500m straight-line radius",
-    "screening_index": "Equal-weight normalized combination of route coverage, inverse nearest-bus-stop distance and 500m bus-stop density; screening only"
+    "screening_index": "Equal-weight normalized combination of route coverage, inverse nearest-bus-stop distance and 500m bus-stop density; screening only",
+    "network_role": "Interchange when a CMRL station is served by more than one CMRL route in the GTFS feed; otherwise Operational",
+    "line": "CMRL route_short_name values serving each station, joined when multiple routes serve the stop"
   },
   "limitations": [
     "Static GTFS represents scheduled service, not observed traffic or real-time delays.",

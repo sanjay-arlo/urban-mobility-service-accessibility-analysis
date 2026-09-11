@@ -1,5 +1,5 @@
-stop_id,station_name,latitude,longitude,nearest_bus_stop_m,bus_stops_within_500m,nearest_bus_stop,nearest_bus_stop_id,metro_route_count,metro_trip_count,interchange_flag,route_coverage_score,first_mile_proximity_score,bus_stop_density_score,network_first_mile_screening_index,first_mile_band
-CMRL_01,Wimco Nagar Depot,13.183971,80.308994,38.5,8,I T C,7639,1,32,0,0.0,0.846908734052993,0.375,40.7,Strong (<250m)
-CMRL_26,Chennai International Airport,12.980809,80.164203,78.9,5,Airport Metro,10971,2,64,1,1.0,0.45044160942100087,0.0,48.3,Strong (<250m)
-CMRL_G01,Puratchi Thalaivar Dr. M.G. Ramachandran Central,13.081767,80.27391,22.9,13,Park Station,101,2,64,1,1.0,1.0,1.0,100.0,Strong (<250m)
-CMRL_G18,St. Thomas Mount,13.000739,80.197151,124.8,6,St Thomas Mount Head Post Office,8966,1,32,0,0.0,0.0,0.125,4.2,Strong (<250m)
+stop_id,station_name,latitude,longitude,nearest_bus_stop_m,bus_stops_within_500m,nearest_bus_stop,nearest_bus_stop_id,metro_route_count,metro_trip_count,line,interchange_flag,network_role,route_coverage_score,first_mile_proximity_score,bus_stop_density_score,network_first_mile_screening_index,first_mile_band
+CMRL_01,Wimco Nagar Depot,13.183971,80.308994,38.5,8,I T C,7639,1,32,Blue Line,0,Operational,0.0,0.846908734052993,0.375,40.7,Strong (<250m)
+CMRL_26,Chennai International Airport,12.980809,80.164203,78.9,5,Airport Metro,10971,2,64,Blue Line + Inter-Corridor,1,Interchange,1.0,0.45044160942100087,0.0,48.3,Strong (<250m)
+CMRL_G01,Puratchi Thalaivar Dr. M.G. Ramachandran Central,13.081767,80.27391,22.9,13,Park Station,101,2,64,Green Line + Inter-Corridor,1,Interchange,1.0,1.0,1.0,100.0,Strong (<250m)
+CMRL_G18,St. Thomas Mount,13.000739,80.197151,124.8,6,St Thomas Mount Head Post Office,8966,1,32,Green Line,0,Operational,0.0,0.0,0.125,4.2,Strong (<250m)
