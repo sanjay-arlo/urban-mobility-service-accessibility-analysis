@@ -1,18 +1,105 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Urban Mobility Service & Accessibility Optimization</title><script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-<style>body{font-family:Arial,sans-serif;margin:0;background:#f5f7fb;color:#172033}.wrap{max-width:1180px;margin:auto;padding:28px}.hero,.card,.chart{background:#fff;border-radius:16px;box-shadow:0 4px 18px rgba(0,0,0,.06)}.hero{padding:25px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}.card{padding:18px}.small{font-size:13px;color:#687386}.kpi{font-size:28px;font-weight:700;margin-top:7px}.chart{margin-top:18px;padding:12px}@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}}</style></head>
-<body><div class="wrap">
-<section class="hero"><div class="small">Business Analyst Case Study</div><h1>Urban Mobility Service & Accessibility Optimization</h1><p>Evidence-led analysis of Chennai metropolitan public-transport demand, ticketing behaviour and network-connectivity signals.</p><p class="small"><b>Data integrity:</b> observed ridership comes from published CMRL passenger-flow reporting. Accessibility is a labelled network-structure proxy, not a measured equity or travel-time score.</p></section>
-<section class="grid"><div class="card"><div class="small">Mar 2026 ridership</div><div class="kpi">1.02 Cr</div></div><div class="card"><div class="small">Jul 2025 peak in FY2025-26</div><div class="kpi">1.05 Cr</div></div><div class="card"><div class="small">Mar 2026 NCMC share</div><div class="kpi">51.95%</div></div><div class="card"><div class="small">Distinct interchange stations in sample</div><div class="kpi">6</div></div></section>
-<div class="chart"><div id="ridership"></div></div><div class="chart"><div id="ticketmix"></div></div><div class="chart"><div id="access"></div></div></div>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Urban Mobility Service & Accessibility Optimization</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+:root{--bg:#0b1220;--panel:#121a2b;--text:#eef3ff;--muted:#9aa7bf;--line:#27324a;--accent:#7c9cff;--good:#85d6a7;}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0b1220,#0e1628);color:var(--text);font-family:Inter,Arial,sans-serif}.wrap{max-width:1450px;margin:auto;padding:28px 22px 50px}.hero,.card,.chart,.decision{background:rgba(18,26,43,.95);border:1px solid var(--line);border-radius:16px}.hero{padding:26px;margin-bottom:16px}.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}.hero h1{margin:8px 0 10px;font-size:38px;line-height:1.1}.hero p{margin:0;color:var(--muted);line-height:1.6;max-width:980px}.filters{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.filters label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}select{background:#0f1728;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:190px}.status{font-size:12px;color:var(--muted);margin:8px 0 14px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{padding:18px}.label{font-size:12px;color:var(--muted)}.kpi{font-size:28px;font-weight:800;margin-top:7px}.sub{font-size:12px;color:#78859d;margin-top:4px}.section{margin-top:20px}.section h2{font-size:18px;margin:0 0 12px}.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px}.chart{min-height:420px;padding:8px}.wide{grid-column:1/-1}.decision{margin-top:18px;padding:20px}.decision-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.decision-card{border:1px solid var(--line);border-radius:14px;padding:16px}.decision-card b{display:block;margin-bottom:7px}.decision-card p{margin:0;color:var(--muted);line-height:1.55;font-size:14px}.note{margin-top:16px;padding:14px 16px;border-radius:12px;background:#151e32;border:1px solid var(--line);color:#abb7cf;line-height:1.55}.error{padding:16px;border:1px solid #70404a;background:#2a1720;border-radius:12px;color:#ffd7df}.footer{margin-top:20px;color:#78859d;font-size:12px}.footer a{color:#afbee5}@media(max-width:980px){.grid{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}.decision-grid{grid-template-columns:1fr}}@media(max-width:560px){.grid{grid-template-columns:1fr}.hero h1{font-size:30px}.wrap{padding:20px 14px}select{width:100%;min-width:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section class="hero">
+<div class="eyebrow">Chennai Metro • Business Analysis Case Study</div>
+<h1>Urban Mobility Service & Accessibility Optimization</h1>
+<p>Decision-oriented analysis of Chennai Metro ridership, ticketing behaviour and network-connectivity signals, with an explicit separation between observed demand and screening-level accessibility evidence.</p>
+</section>
+
+<div class="filters">
+<label>Financial Year<select id="fy"><option value="All">All years</option></select></label>
+<label>Network role<select id="role"><option value="All">All roles</option></select></label>
+<label>Line<select id="line"><option value="All">All lines</option></select></label>
+<label>Accessibility band<select id="band"><option value="All">All bands</option></select></label>
+</div>
+<div id="status" class="status">Loading repository data…</div>
+
+<div class="grid">
+<div class="card"><div class="label">Observed ridership</div><div id="kpiRidership" class="kpi">—</div><div class="sub">Total in selected period</div></div>
+<div class="card"><div class="label">Peak month</div><div id="kpiPeak" class="kpi">—</div><div class="sub">Highest monthly ridership</div></div>
+<div class="card"><div class="label">NCMC share</div><div id="kpiNcmc" class="kpi">—</div><div class="sub">Weighted share of selected months</div></div>
+<div class="card"><div class="label">Interchange stations</div><div id="kpiInterchange" class="kpi">—</div><div class="sub">Unique stations in network data</div></div>
+</div>
+
+<section class="section"><h2>Demand & Ticketing</h2><div class="charts">
+<div id="ridership" class="chart"></div>
+<div id="ticketing" class="chart"></div>
+<div id="growth" class="chart"></div>
+<div id="fycompare" class="chart"></div>
+</div></section>
+
+<section class="section"><h2>Network Accessibility Screening</h2><div class="charts">
+<div id="access" class="chart"></div>
+<div id="roles" class="chart"></div>
+<div id="lineproxy" class="chart wide"></div>
+</div></section>
+
+<section class="decision">
+<h2>Decision Support</h2>
+<div class="decision-grid">
+<div class="decision-card"><b>Demand signal</b><p id="demandNote">—</p></div>
+<div class="decision-card"><b>Ticketing signal</b><p id="ticketNote">—</p></div>
+<div class="decision-card"><b>Planning implication</b><p id="planningNote">—</p></div>
+</div>
+<div class="note"><strong>Methodology:</strong> Ridership and ticketing metrics are calculated from the CMRL passenger-flow CSV. Station accessibility is a network-structure proxy based on interchange/network-role information; it is not measured travel time, socioeconomic accessibility, passenger equity, or service quality.</div>
+</section>
+
+<div class="footer">Built by <b>Sanjay Arlo</b> • <a href="https://github.com/sanjay-arlo/urban-mobility-service-accessibility-analysis">GitHub repository</a></div>
+</div>
 <script>
-const months=['2025-04','2025-05','2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03','2026-04','2026-05'];
-const ridership=[8759588,8909729,9221963,10468732,9896230,10146769,9327746,9286756,9466507,9321129,9618085,10184419,8977804,8965047];
-const ncmc=[48.29,45.88,47.76,49.33,49.23,51.22,51.02,52.21,51.43,49.92,51.06,51.95,50.33,47.43];
-const qr=[44.66,47.52,45.62,44.44,48.49,47.64,48.15,47.14,48.02,49.60,48.54,47.73,49.39,52.55];
-Plotly.newPlot('ridership',[{x:months,y:ridership,type:'bar',name:'Total Ridership'}],{title:'Monthly Metro Ridership (Apr 2025–May 2026)',yaxis:{title:'Passengers'},margin:{t:55,b:80,l:60,r:20}},{responsive:true});
-Plotly.newPlot('ticketmix',[{x:months,y:ncmc,type:'scatter',mode:'lines+markers',name:'NCMC %'},{x:months,y:qr,type:'scatter',mode:'lines+markers',name:'QR %'}],{title:'Ticketing Mix Trend',yaxis:{title:'Share (%)'},margin:{t:55,b:80,l:60,r:20}},{responsive:true});
-const stations=['Central','Egmore','CMBT','St. Thomas Mount','Nandanam','Alandur','Shenoy Nagar','Koyambedu','Anna Nagar Tower','Thirumangalam','Ashok Nagar','Vadapalani']; const scores=[100,100,100,100,100,100,50,50,50,50,50,50];
-Plotly.newPlot('access',[{x:stations,y:scores,type:'bar',name:'Connectivity proxy'}],{title:'Network Connectivity Proxy — Screening View',yaxis:{title:'Proxy score'},margin:{t:55,b:140,l:60,r:20}},{responsive:true});
-</script></body></html>
+let ridershipData=[], stationData=[];
+const base={paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:'#eef3ff'},margin:{l:58,r:18,t:58,b:62},xaxis:{gridcolor:'#27324a'},yaxis:{gridcolor:'#27324a'},legend:{orientation:'h',y:-.2}};
+const cfg={responsive:true,displaylogo:false};
+const draw=(id,data,extra={})=>Plotly.newPlot(id,data,{...base,...extra},cfg);
+const uniq=a=>[...new Set(a.filter(Boolean))];
+const sum=a=>a.reduce((x,y)=>x+y,0);
+function countBy(a,key){const o={};a.forEach(v=>{const k=key(v);o[k]=(o[k]||0)+1});return o}
+function median(a){if(!a.length)return 0;const s=[...a].sort((a,b)=>a-b),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2}
+function fill(id,vals){const e=document.getElementById(id);vals.sort((a,b)=>String(a).localeCompare(String(b))).forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;e.appendChild(o)})}
+function currentFilters(){return{fy:document.getElementById('fy').value,role:document.getElementById('role').value,line:document.getElementById('line').value,band:document.getElementById('band').value}}
+function filteredStations(f){return stationData.filter(x=>(f.role==='All'||x.network_role===f.role)&&(f.line==='All'||x.line===f.line)&&(f.band==='All'||x.accessibility_band===f.band))}
+function render(){
+const f=currentFilters();
+const months=ridershipData.filter(x=>f.fy==='All'||x.fy===f.fy);
+const total=sum(months.map(x=>x.total_ridership));
+const peak=months.reduce((a,b)=>b.total_ridership>a.total_ridership?b:a,null);
+const qr=sum(months.map(x=>x.qr_tickets)),ncmc=sum(months.map(x=>x.ncmc)),closed=sum(months.map(x=>x.closed_loop));
+const station=filteredStations(f);
+const uniqueInterchanges=new Set(station.filter(x=>x.interchange_flag==='1'||x.interchange_flag===1).map(x=>x.station));
+const filteredMonths=months.length?months:ridershipData;
+const wNcmc=sum(filteredMonths.map(x=>x.ncmc)),wTotal=sum(filteredMonths.map(x=>x.total_ridership));
+document.getElementById('kpiRidership').textContent=(total/1e7).toFixed(2)+' Cr';
+document.getElementById('kpiPeak').textContent=peak?peak.month:'—';
+document.getElementById('kpiNcmc').textContent=(wNcmc/wTotal*100).toFixed(1)+'%';
+document.getElementById('kpiInterchange').textContent=uniqueInterchanges.size;
+document.getElementById('status').textContent=`Showing ${months.length} monthly ridership records and ${station.length} station records. Metrics are calculated from repository CSV files.`;
+const growth=filteredMonths.map((x,i)=>({month:x.month,g:i?((x.total_ridership-filteredMonths[i-1].total_ridership)/filteredMonths[i-1].total_ridership*100):null}));
+draw('ridership',[{x:filteredMonths.map(x=>x.month),y:filteredMonths.map(x=>x.total_ridership),type:'bar',name:'Ridership'}],{title:'Monthly Ridership',yaxis:{title:'Passengers'}});
+draw('ticketing',[{x:filteredMonths.map(x=>x.month),y:filteredMonths.map(x=>x.ncmc_share_pct),type:'scatter',mode:'lines+markers',name:'NCMC %'},{x:filteredMonths.map(x=>x.month),y:filteredMonths.map(x=>x.qr_tickets_share_pct),type:'scatter',mode:'lines+markers',name:'QR %'},{x:filteredMonths.map(x=>x.month),y:filteredMonths.map(x=>x.closed_loop_share_pct),type:'scatter',mode:'lines+markers',name:'Closed-loop %'}],{title:'Ticketing Mix Trend',yaxis:{title:'Share (%)'}});
+draw('growth',[{x:growth.map(x=>x.month),y:growth.map(x=>x.g),type:'bar',name:'MoM growth'}],{title:'Month-over-Month Ridership Growth',yaxis:{title:'Growth (%)'}});
+const fyCounts={};filteredMonths.forEach(x=>fyCounts[x.fy]=(fyCounts[x.fy]||0)+x.total_ridership);draw('fycompare',[{x:Object.keys(fyCounts),y:Object.values(fyCounts),type:'bar'}],{title:'Ridership by Financial Year',yaxis:{title:'Passengers'}});
+const access=countBy(station,x=>x.accessibility_band);draw('access',[{x:Object.keys(access),y:Object.values(access),type:'bar'}],{title:'Accessibility Screening Bands',yaxis:{title:'Stations'}});
+const roles=countBy(station,x=>x.network_role);draw('roles',[{x:Object.keys(roles),y:Object.values(roles),type:'bar'}],{title:'Network Role Mix',yaxis:{title:'Stations'}});
+const lines={};station.forEach(x=>(lines[x.line]??=[]).push(Number(x.accessibility_proxy_score)));const ls=Object.entries(lines).map(([k,v])=>[k,+(sum(v)/v.length).toFixed(1)]);draw('lineproxy',[{x:ls.map(x=>x[0]),y:ls.map(x=>x[1]),type:'bar'}],{title:'Average Accessibility Proxy by Line',yaxis:{title:'Proxy score'}});
+const bestDemand=filteredMonths.reduce((a,b)=>b.total_ridership>a.total_ridership?b:a,null);document.getElementById('demandNote').textContent=bestDemand?`The highest observed month in the selected view is ${bestDemand.month} with ${(bestDemand.total_ridership/1e6).toFixed(2)} million passengers.`:'No demand record available.';
+document.getElementById('ticketNote').textContent=wTotal?`Across the selected period, NCMC represents ${(wNcmc/wTotal*100).toFixed(1)}% of recorded passenger volume; QR represents ${(qr/wTotal*100).toFixed(1)}%.`:'No ticketing data available.';
+document.getElementById('planningNote').textContent=`Use high-demand periods and network-role concentration as screening signals for deeper operational study. Do not treat the proxy score as a direct accessibility or equity measure.`;
+}
+function loadRidership(){return new Promise((resolve,reject)=>Papa.parse('data/cmrl_passenger_flow.csv',{download:true,header:true,skipEmptyLines:true,complete:r=>{ridershipData=r.data.map(x=>({...x,total_ridership:Number(x.total_ridership),qr_tickets:Number(x.qr_tickets),ncmc:Number(x.ncmc),closed_loop:Number(x.closed_loop)}));resolve()},error:reject}))}
+function loadStations(){return new Promise((resolve,reject)=>Papa.parse('data/station_accessibility_proxy.csv',{download:true,header:true,skipEmptyLines:true,complete:r=>{stationData=r.data;resolve()},error:reject}))}
+Promise.all([loadRidership(),loadStations()]).then(()=>{fill('fy',uniq(ridershipData.map(x=>x.fy)));fill('role',uniq(stationData.map(x=>x.network_role)));fill('line',uniq(stationData.map(x=>x.line)));fill('band',uniq(stationData.map(x=>x.accessibility_band)));['fy','role','line','band'].forEach(id=>document.getElementById(id).addEventListener('change',render));render()}).catch(()=>{document.getElementById('status').innerHTML='<div class="error">Unable to load repository data. Open the dashboard through GitHub Pages or a local HTTP server.</div>'});
+</script>
+</body></html>
