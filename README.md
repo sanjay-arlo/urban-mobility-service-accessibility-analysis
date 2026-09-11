@@ -1,18 +1,18 @@
 # Urban Mobility Service & Accessibility Optimization
 
-> Business Analyst case study using Chennai Metro public reporting to analyse passenger demand, ticketing behaviour, network connectivity and planning priorities.
+> Business Analyst case study combining Chennai Metro passenger demand with GTFS-based network, scheduled travel-time and first/last-mile evidence.
 
 ## 🔴 Live Dashboard
 
 ### 🚀 [Open the Interactive Dashboard](https://sanjay-arlo.github.io/urban-mobility-service-accessibility-analysis/)
 
-The dashboard loads the repository CSV files directly and calculates the displayed KPIs, trends and network summaries from the source data.
+The dashboard loads repository CSV outputs directly. Ridership and ticketing are based on CMRL passenger-flow reporting; network and first/last-mile metrics are generated from the GTFS refresh pipeline.
 
 ---
 
 ## 🎯 Business Problem
 
-Transport-planning teams need a repeatable way to understand demand patterns, ticketing behaviour and network-structure signals before prioritising deeper operational or accessibility studies.
+Transport-planning teams need a repeatable way to understand demand patterns and network access signals before prioritising deeper operational studies.
 
 **Business Question → Data → Validation → KPI → Segmentation → Insight → Recommendation**
 
@@ -21,9 +21,10 @@ Transport-planning teams need a repeatable way to understand demand patterns, ti
 1. How has Chennai Metro passenger demand changed month by month?
 2. Which periods show the strongest observed ridership?
 3. How has the mix of NCMC, QR and closed-loop ticketing changed?
-4. How are stations distributed across network roles and lines?
-5. Which stations have stronger network-connectivity signals?
-6. Which patterns should trigger deeper planning investigation?
+4. Which stations have strong network connectivity and interchanges?
+5. Which stations are farther from the nearest bus stop?
+6. What is the scheduled travel time between adjacent metro stations?
+7. Which stations or network patterns deserve deeper first/last-mile investigation?
 
 ---
 
@@ -33,7 +34,8 @@ Transport-planning teams need a repeatable way to understand demand patterns, ti
 - Total observed ridership for the selected period
 - Peak observed month
 - Weighted NCMC share
-- Distinct interchange stations
+- GTFS-derived metro-station count
+- Median straight-line distance to the nearest GTFS bus stop
 
 ### Demand & Ticketing
 - Monthly ridership
@@ -41,16 +43,18 @@ Transport-planning teams need a repeatable way to understand demand patterns, ti
 - NCMC / QR / closed-loop share trends
 - Financial-year comparison
 
-### Network Accessibility Screening
-- Accessibility screening bands
-- Network-role mix
-- Average proxy score by line
-- Filters for financial year, network role, line and screening band
+### GTFS Network & First/Last Mile
+- First-mile proximity bands
+- Nearest bus-stop distance by station
+- Bus-stop density within 500m
+- Scheduled metro segment travel time
+- Network + first-mile screening index by line
+- Filters for financial year, network role, line and first-mile band
 
 ### Decision Support
 - Evidence-led demand signal
-- Ticketing signal
-- Planning implication
+- First/last-mile investigation signal
+- Scheduled travel-time signal
 - Explicit methodology and limitations
 
 ---
@@ -68,26 +72,62 @@ This avoids averaging monthly percentages without weighting by passenger volume.
 ### MoM growth
 `MoM Growth % = (Current Month Ridership − Previous Month Ridership) / Previous Month Ridership × 100`
 
-### Accessibility proxy
-The station score is a **screening-level network-structure measure**, not observed accessibility. The current source model assigns higher connectivity to interchange stations and lower connectivity to ordinary operational stations. It must not be interpreted as measured travel time, socioeconomic access, passenger equity, service quality or customer satisfaction.
+### Scheduled travel time
+For each adjacent metro-station pair, scheduled travel time is calculated from GTFS `stop_times.txt`. The dashboard reports the median observed timetable duration across matching trips.
+
+### First/last-mile proximity
+For each metro station:
+
+- `Nearest bus stop distance` = straight-line Haversine distance to the closest GTFS bus stop.
+- `Bus stops within 500m` = count of GTFS bus stops inside a 500m straight-line radius.
+
+### Network + first-mile screening index
+A transparent 0–100 analytical index combines three min-max-normalised components with equal weight:
+
+1. Metro route coverage
+2. Inverse nearest-bus-stop distance
+3. Bus-stop density within 500m
+
+It is a **screening index only**. It is not a measure of transport equity, socioeconomic accessibility, observed travel time, pedestrian accessibility or service quality.
 
 ---
 
 ## ⚠️ Data Integrity
 
-Passenger-flow figures are based on the published Chennai Metro Rail Limited (CMRL) passenger-flow series stored in `data/cmrl_passenger_flow.csv`. The repository currently includes monthly observations from April 2023 through May 2026.
+Passenger-flow figures are based on CMRL public passenger-flow reporting stored in `data/cmrl_passenger_flow.csv`.
 
-Station and network-role information is stored separately in `data/station_accessibility_proxy.csv` so ridership data and station data remain at their own grains.
+The GTFS pipeline uses a machine-readable Chennai unified feed from the community-maintained ChennaiGTFS project. The project does **not** represent that feed as an official CUMTA/CMRL publication.
 
-The project deliberately avoids inventing vehicle-level delays, station-level passenger counts or causal effects that are not supported by the underlying sources.
+Static GTFS provides scheduled transit information. It does not prove real-time delays or actual road congestion. First-mile distances are straight-line proximity measures, not pedestrian-network walking distances.
+
+The analysis keeps monthly ridership and station/network data at separate grains to avoid misleading joins.
 
 ---
 
 ## 📚 Data Sources
 
-The analysis is structured from publicly reported Chennai Metro information. CMRL publishes passenger-flow, monthly ridership and peak-hour information through its public commuter information resources. Station/network references use public CMRL network information.
+- **CMRL public commuter information** for passenger-flow/ridership reporting.
+- **CUMTA Transit Data Chennai** as the official Chennai open-data context for static GTFS.
+- **ChennaiGTFS community feed** as the automated machine-readable source used by this portfolio pipeline.
 
-For future expansion, verified GTFS data from the public Transit Data Chennai ecosystem can be incorporated for stop-level and route-level accessibility analysis.
+Detailed source and methodology notes are in `data/GTFS_Sources_and_Methodology.md`.
+
+---
+
+## 🔄 GTFS Refresh Pipeline
+
+`python scripts/build_gtfs_accessibility.py` downloads the configured unified GTFS feed and generates:
+
+```text
+data/
+├── gtfs_station_metrics.csv
+├── gtfs_metro_segment_travel_times.csv
+└── gtfs_refresh_metadata.json
+```
+
+GitHub Actions runs the refresh weekly and supports manual execution through workflow dispatch.
+
+The pipeline validates the presence of core GTFS tables, derives scheduled metro travel time from `stop_times.txt`, calculates bus-stop proximity with the Haversine formula, and records the source/refresh metadata.
 
 ---
 
@@ -103,51 +143,44 @@ Fact_Ridership
     ncmc
     total_ridership
 
-Dim_Station
-    line
-    station
-    network_role
+Dim_GTFS_Station
+    stop_id
+    station_name
+    latitude
+    longitude
+    metro_route_count
+    metro_trip_count
     interchange_flag
-    accessibility_proxy_score
-    accessibility_band
+    nearest_bus_stop_m
+    bus_stops_within_500m
+    route_coverage_score
+    first_mile_proximity_score
+    bus_stop_density_score
+    network_first_mile_screening_index
+    first_mile_band
+
+Fact_Metro_Segment_Travel_Time
+    from_stop_id
+    to_stop_id
+    from_station
+    to_station
+    median_scheduled_travel_time_min
+    trip_observations
 ```
 
-The two datasets are intentionally analysed at separate grains. A many-to-many join between monthly ridership and station records would create misleading numbers.
-
----
-
-## 🧪 Analysis Workflow
-
-1. **Load** — Read the CMRL passenger-flow and station datasets.
-2. **Validate** — Check rows, missing values, duplicates and basic consistency.
-3. **Feature engineer** — Calculate salary-like derived measures relevant to mobility analysis such as growth and weighted ticketing shares.
-4. **Analyse** — Produce demand, ticketing, network-role and screening metrics.
-5. **Compare** — Examine financial-year patterns and network-role distributions.
-6. **Visualise** — Present calculated results through the browser dashboard.
-7. **Interpret** — Convert observed patterns into investigation priorities while keeping claims within the limits of the data.
+The datasets remain at their own grains. Monthly ridership should not be joined directly to station-level or segment-level records for passenger totals.
 
 ---
 
 ## 🗄️ SQL Analysis
 
-`sql/urban_mobility_analysis.sql` contains reusable MySQL analysis for:
-
-- monthly ridership
-- MoM growth using `LAG()`
-- ticketing mix
-- highest-demand months
-- interchange stations
-- network-role mix
-- line-level proxy comparison
-- screening candidates for deeper study
+`sql/urban_mobility_analysis.sql` contains reusable MySQL analysis for monthly ridership, MoM growth, ticketing mix, demand ranking, interchange analysis, network-role mix and line-level screening.
 
 ---
 
 ## 📊 Excel & Power BI
 
-The repository documentation includes a **Power BI model/DAX specification** and an **Excel analysis guide**. These are design/validation references rather than claims that a `.pbix` or `.xlsx` implementation is included.
-
-A future release can add the actual Excel workbook and Power BI file where sharing those binaries is practical.
+The repository includes an **Excel analysis guide** and a **Power BI model/DAX specification**. These are methodological references, not claims that `.xlsx` or `.pbix` binaries are present.
 
 ---
 
@@ -157,7 +190,12 @@ A future release can add the actual Excel workbook and Power BI file where shari
 urban-mobility-service-accessibility-analysis/
 ├── data/
 │   ├── cmrl_passenger_flow.csv
-│   └── station_accessibility_proxy.csv
+│   ├── station_accessibility_proxy.csv
+│   └── GTFS_Sources_and_Methodology.md
+├── scripts/
+│   └── build_gtfs_accessibility.py
+├── .github/workflows/
+│   └── refresh_gtfs.yml
 ├── excel/
 │   └── Excel_Analysis_Guide.md
 ├── powerbi/
@@ -170,11 +208,9 @@ urban-mobility-service-accessibility-analysis/
 
 ---
 
-## 🔮 Next Analytical Upgrade
+## 🔮 Further Upgrade
 
-The strongest next version would replace the simple screening proxy with verified stop-level GTFS and travel-time observations, then build an accessibility model that can distinguish connectivity, travel effort, interchange importance and first/last-mile access.
-
-Until those fields exist, the proxy should remain a screening tool rather than a headline accessibility metric.
+The next level is to replace straight-line bus-stop proximity with **pedestrian-network routing** using OpenStreetMap and to add **GTFS-Realtime or observed vehicle telemetry** for actual travel-time reliability. That would move the project from network screening toward a defensible accessibility and service-quality analysis.
 
 ---
 
