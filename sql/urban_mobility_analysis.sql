@@ -22,7 +22,9 @@ CREATE TABLE gtfs_station_metrics (
   nearest_bus_stop_id VARCHAR(150),
   metro_route_count INT,
   metro_trip_count INT,
+  line VARCHAR(200),
   interchange_flag TINYINT,
+  network_role VARCHAR(40),
   route_coverage_score DECIMAL(8,3),
   first_mile_proximity_score DECIMAL(8,3),
   bus_stop_density_score DECIMAL(8,3),
@@ -91,36 +93,54 @@ GROUP BY financial_year
 ORDER BY financial_year;
 
 -- 6. Stations with weak first-mile proximity
-SELECT station_name, nearest_bus_stop_m, bus_stops_within_500m,
+SELECT station_name, line, network_role, nearest_bus_stop_m, bus_stops_within_500m,
        metro_route_count, interchange_flag,
-       network_first_mile_screening_index
+       network_first_mile_screening_index, first_mile_band
 FROM gtfs_station_metrics
 WHERE nearest_bus_stop_m > 500
 ORDER BY nearest_bus_stop_m DESC;
 
 -- 7. Strong first-mile / network screening candidates
-SELECT station_name, nearest_bus_stop_m, bus_stops_within_500m,
-       metro_route_count, interchange_flag,
+SELECT station_name, line, network_role, nearest_bus_stop_m, bus_stops_within_500m,
        network_first_mile_screening_index
 FROM gtfs_station_metrics
 ORDER BY network_first_mile_screening_index DESC
 LIMIT 15;
 
 -- 8. Interchange and network coverage
-SELECT station_name, metro_route_count, metro_trip_count,
+SELECT station_name, line, network_role, metro_route_count, metro_trip_count,
        interchange_flag, network_first_mile_screening_index
 FROM gtfs_station_metrics
 ORDER BY metro_route_count DESC, metro_trip_count DESC;
 
--- 9. Scheduled metro travel-time hotspots
+-- 9. Line-level first-mile screening
+SELECT line,
+       COUNT(*) AS station_count,
+       ROUND(AVG(nearest_bus_stop_m),1) AS avg_nearest_bus_stop_m,
+       ROUND(AVG(bus_stops_within_500m),1) AS avg_bus_stops_within_500m,
+       ROUND(AVG(network_first_mile_screening_index),1) AS avg_screening_index
+FROM gtfs_station_metrics
+GROUP BY line
+ORDER BY avg_screening_index DESC;
+
+-- 10. Network-role mix
+SELECT network_role,
+       COUNT(*) AS station_count,
+       ROUND(AVG(nearest_bus_stop_m),1) AS avg_nearest_bus_stop_m,
+       ROUND(AVG(network_first_mile_screening_index),1) AS avg_screening_index
+FROM gtfs_station_metrics
+GROUP BY network_role
+ORDER BY station_count DESC;
+
+-- 11. Scheduled metro travel-time hotspots
 SELECT from_station, to_station,
        median_scheduled_travel_time_min, trip_observations
 FROM gtfs_metro_segment_travel_times
 ORDER BY median_scheduled_travel_time_min DESC
 LIMIT 15;
 
--- 10. Planning screen: longer first-mile distance + limited nearby bus coverage
-SELECT station_name, nearest_bus_stop_m, bus_stops_within_500m,
+-- 12. Planning screen: longer first-mile distance + limited nearby bus coverage
+SELECT station_name, line, network_role, nearest_bus_stop_m, bus_stops_within_500m,
        metro_route_count, interchange_flag
 FROM gtfs_station_metrics
 WHERE nearest_bus_stop_m > 500
@@ -130,4 +150,5 @@ ORDER BY nearest_bus_stop_m DESC;
 -- IMPORTANT:
 -- GTFS scheduled travel time is timetable-derived, not observed traffic time.
 -- First-mile distance is straight-line proximity to a GTFS bus stop, not walking-network travel time.
+-- Some coordinate-valid CMRL stops may not appear in the sampled scheduled trip records.
 -- The screening index is an analytical prioritisation aid, not a transport-equity or service-quality score.
