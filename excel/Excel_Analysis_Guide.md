@@ -1,36 +1,58 @@
 # Excel Analysis Guide
 
-Use `data/cmrl_passenger_flow.csv` as the Excel source table.
+This folder contains the Excel analysis specification for the mobility case study. The repository does **not** claim that an `.xlsx` workbook is included.
 
-## Workbook sheets
+## Workbook structure
 
-1. **Raw_Data** — imported CMRL passenger-flow data
-2. **KPI_Checks** — ridership, MoM growth and ticket shares
-3. **Pivot_Analysis** — financial-year and monthly pivot tables
-4. **Business_Questions** — question → metric → finding → action
+### Sheet 1 — Source_Ridership
+Load `../data/cmrl_passenger_flow.csv` as an Excel Table named `Fact_Ridership`.
 
-## Useful Excel formulas
+Recommended checks:
+- Row count
+- Missing values
+- Duplicate months
+- `Closed Loop + QR Tickets + NCMC = Total Ridership`
+- Date sorting
 
-### MoM growth
-`=(Current_Month_Ridership-Prior_Month_Ridership)/Prior_Month_Ridership`
+### Sheet 2 — Calculations
+Create:
 
-### NCMC share
-`=NCMC/Total_Ridership`
+`MoM Growth % = (Current Ridership / Previous Ridership) - 1`
 
-### QR share
-`=QR_Tickets/Total_Ridership`
+`NCMC Share % = NCMC / Total Ridership`
 
-### Closed-loop share
-`=Closed_Loop/Total_Ridership`
+`QR Share % = QR Tickets / Total Ridership`
 
-## Pivot questions
+`Closed Loop Share % = Closed Loop / Total Ridership`
 
-- Ridership by financial year
-- Highest-demand months
-- Average monthly ridership
-- Ticketing mix by month
-- Interchange station count
+Use a weighted annual ticketing share for period summaries rather than averaging monthly percentages.
 
-## Validation rule
+### Sheet 3 — Station_Network
+Load `../data/station_accessibility_proxy.csv` as `Dim_Station`.
 
-Totals should reconcile back to the CMRL published passenger-flow figures used in the project. Do not change source values in the Raw_Data sheet; perform transformations in separate analysis sheets.
+Recommended pivots:
+- Station count by network role
+- Interchange stations by line
+- Average proxy score by line
+- Accessibility band distribution
+
+### Sheet 4 — Executive_Checks
+Reconcile the Excel calculations against the dashboard:
+
+- Total selected-period ridership
+- Peak month
+- Weighted NCMC share
+- Distinct interchange count
+
+## Business-analysis outputs
+
+The goal is not simply to reproduce charts. Use the workbook to answer:
+
+1. Where are the strongest observed demand periods?
+2. How is ticketing behaviour changing over time?
+3. Which network roles are most common?
+4. Which stations/lines should be prioritised for deeper study?
+5. What additional data is needed before making an accessibility or investment decision?
+
+## Integrity rule
+The station score is a screening proxy based on network structure. Do not label it as measured accessibility, travel time, socioeconomic access, passenger equity, or service quality.
