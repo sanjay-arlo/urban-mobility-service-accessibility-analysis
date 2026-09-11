@@ -32,10 +32,6 @@ def read_csv(zf: zipfile.ZipFile, name: str, usecols=None) -> pd.DataFrame:
     raise FileNotFoundError(name)
 
 
-def hmean(a: float, b: float) -> float:
-    return 2.0 * a * b / (a + b) if a > 0 and b > 0 else 0.0
-
-
 def haversine_m(lat1, lon1, lat2, lon2):
     r = 6371000.0
     p1, p2 = math.radians(lat1), math.radians(lat2)
@@ -51,7 +47,6 @@ def gtfs_seconds(value: str) -> int:
 
 
 def percentile_rank(series: pd.Series, ascending: bool = True) -> pd.Series:
-    # Min-max scaling with a stable 0..1 range.
     lo, hi = float(series.min()), float(series.max())
     if math.isclose(lo, hi):
         return pd.Series(1.0, index=series.index)
@@ -72,29 +67,27 @@ def main():
 
         routes = read_csv(zf, "routes.txt", ["route_id", "route_short_name", "route_long_name", "route_type"])
         trips = read_csv(zf, "trips.txt", ["route_id", "trip_id"])
-        stops = read_csv(zf, "stops.txt", ["stop_id", "stop_name", "stop_lat", "stop_lon", "location_type"])
+        # The current community feed does not expose location_type in stops.txt,
+        # so use the core GTFS coordinate/name fields only.
+        stops = read_csv(zf, "stops.txt", ["stop_id", "stop_name", "stop_lat", "stop_lon"])
         stop_times = read_csv(zf, "stop_times.txt", ["trip_id", "arrival_time", "departure_time", "stop_id", "stop_sequence"])
 
     routes["route_type"] = pd.to_numeric(routes["route_type"], errors="coerce")
     stops["stop_lat"] = pd.to_numeric(stops["stop_lat"], errors="coerce")
     stops["stop_lon"] = pd.to_numeric(stops["stop_lon"], errors="coerce")
-    stops["location_type"] = pd.to_numeric(stops.get("location_type", 0), errors="coerce").fillna(0)
 
     # GTFS route_type 1 = subway/metro, 3 = bus.
     metro_routes = routes[routes["route_type"] == 1].copy()
     bus_routes = routes[routes["route_type"] == 3].copy()
-    metro_trip_ids = set(trips[trips["route_id"].isin(metro_routes["route_id"])] ["trip_id"])
+    metro_trip_ids = set(trips.loc[trips["route_id"].isin(metro_routes["route_id"]), "trip_id"])
+    bus_trip_ids = set(trips.loc[trips["route_id"].isin(bus_routes["route_id"]), "trip_id"])
 
-    metro_stops = stops[stops["stop_id"].isin(set(stop_times[stop_times["trip_id"].isin(metro_trip_ids)]["stop_id"]))].copy()
-    bus_trip_ids = set(trips[trips["route_id"].isin(bus_routes["route_id"])] ["trip_id"])
-    bus_stop_ids = set(stop_times[stop_times["trip_id"].isin(bus_trip_ids)]["stop_id"])
-    bus_stops = stops[stops["stop_id"].isin(bus_stop_ids)].copy()
+    metro_stops = stops[stops["stop_id"].isin(set(stop_times.loc[stop_times["trip_id"].isin(metro_trip_ids), "stop_id"]))].copy()
+    bus_stops = stops[stops["stop_id"].isin(set(stop_times.loc[stop_times["trip_id"].isin(bus_trip_ids), "stop_id"]))].copy()
 
-    # Remove incomplete coordinates because distance measures would be invalid.
     metro_stops = metro_stops.dropna(subset=["stop_lat", "stop_lon"]).drop_duplicates("stop_id")
     bus_stops = bus_stops.dropna(subset=["stop_lat", "stop_lon"]).drop_duplicates("stop_id")
 
-    # Station-level route coverage and interchange signal from the GTFS network itself.
     metro_st = stop_times[stop_times["trip_id"].isin(metro_trip_ids)][["trip_id", "stop_id"]].merge(
         trips[["trip_id", "route_id"]], on="trip_id", how="left"
     )
@@ -117,8 +110,14 @@ def main():
         trip_observations=("travel_time_min", "size"),
     )
     seg = seg.rename(columns={"stop_id": "from_stop_id", "next_stop_id": "to_stop_id"})
-    seg = seg.merge(metro_stops[["stop_id", "stop_name"]].rename(columns={"stop_id": "from_stop_id", "stop_name": "from_station"}), on="from_stop_id", how="left")
-    seg = seg.merge(metro_stops[["stop_id", "stop_name"]].rename(columns={"stop_id": "to_stop_id", "stop_name": "to_station"}), on="to_stop_id", how="left")
+    seg = seg.merge(
+        metro_stops[["stop_id", "stop_name"]].rename(columns={"stop_id": "from_stop_id", "stop_name": "from_station"}),
+        on="from_stop_id", how="left"
+    )
+    seg = seg.merge(
+        metro_stops[["stop_id", "stop_name"]].rename(columns={"stop_id": "to_stop_id", "stop_name": "to_station"}),
+        on="to_stop_id", how="left"
+    )
     seg.to_csv(OUT_SEGMENTS, index=False)
 
     # First/last-mile proximity: nearest GTFS bus stop and number of bus stops within 500m.
@@ -151,8 +150,6 @@ def main():
     station_metrics["metro_trip_count"] = station_metrics["metro_trip_count"].fillna(0).astype(int)
     station_metrics["interchange_flag"] = (station_metrics["metro_route_count"] > 1).astype(int)
 
-    # Evidence-based screening index: equal weights on route coverage, first-mile proximity,
-    # and nearby bus-stop density. It is explicitly a screening index, not accessibility equity.
     station_metrics["route_coverage_score"] = percentile_rank(station_metrics["metro_route_count"], ascending=True)
     station_metrics["first_mile_proximity_score"] = percentile_rank(station_metrics["nearest_bus_stop_m"], ascending=False)
     station_metrics["bus_stop_density_score"] = percentile_rank(station_metrics["bus_stops_within_500m"], ascending=True)
