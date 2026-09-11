@@ -13,29 +13,39 @@ This file defines the recommended Power BI implementation. It is a **model/DAX s
 - NCMC
 - Total Ridership
 
-### Dim_Station
-- Line
-- Station
-- Network Role
+### Dim_GTFS_Station
+- Stop ID
+- Station Name
+- Latitude
+- Longitude
+- Metro Route Count
+- Metro Trip Count
 - Interchange Flag
-- Accessibility Proxy Score
-- Accessibility Band
+- Nearest Bus Stop Distance (m)
+- Bus Stops Within 500m
+- Network + First-Mile Screening Index
+- First-Mile Band
 
-Keep ridership and station/network data at their own grains. Do not create a many-to-many relationship simply to make a visual work.
+### Fact_Metro_Segment_Travel_Time
+- From Stop ID
+- To Stop ID
+- From Station
+- To Station
+- Median Scheduled Travel Time (min)
+- Trip Observations
+
+Keep these datasets at their own grains. Do not create a many-to-many relationship simply to make a visual work.
 
 ## Core measures
 
 ```DAX
 Total Ridership = SUM(Fact_Ridership[Total Ridership])
 
-QR Share % =
-DIVIDE(SUM(Fact_Ridership[QR Tickets]), [Total Ridership])
+QR Share % = DIVIDE(SUM(Fact_Ridership[QR Tickets]), [Total Ridership])
 
-NCMC Share % =
-DIVIDE(SUM(Fact_Ridership[NCMC]), [Total Ridership])
+NCMC Share % = DIVIDE(SUM(Fact_Ridership[NCMC]), [Total Ridership])
 
-Closed Loop Share % =
-DIVIDE(SUM(Fact_Ridership[Closed Loop]), [Total Ridership])
+Closed Loop Share % = DIVIDE(SUM(Fact_Ridership[Closed Loop]), [Total Ridership])
 
 MoM Growth % =
 VAR CurrentValue = [Total Ridership]
@@ -49,27 +59,36 @@ DIVIDE(CurrentValue - PreviousValue, PreviousValue)
 
 Interchange Stations =
 CALCULATE(
-    DISTINCTCOUNT(Dim_Station[Station]),
-    Dim_Station[Interchange Flag] = 1
+    DISTINCTCOUNT(Dim_GTFS_Station[Stop ID]),
+    Dim_GTFS_Station[Interchange Flag] = 1
 )
 
-Avg Accessibility Proxy =
-AVERAGE(Dim_Station[Accessibility Proxy Score])
+Median First-Mile Distance (m) =
+MEDIAN(Dim_GTFS_Station[Nearest Bus Stop Distance (m)])
+
+Avg Screening Index =
+AVERAGE(Dim_GTFS_Station[Network + First-Mile Screening Index])
+
+Avg Scheduled Segment Time (min) =
+AVERAGE(Fact_Metro_Segment_Travel_Time[Median Scheduled Travel Time (min)])
 ```
 
 ## Recommended pages
 
 ### 1 — Executive Overview
-KPI cards, monthly ridership trend, peak month and ticketing mix.
+KPI cards, monthly ridership trend, peak month and weighted ticketing mix.
 
 ### 2 — Demand & Ticketing
 MoM growth, NCMC/QR/closed-loop shares and financial-year comparison.
 
-### 3 — Network Accessibility Screening
-Station connectivity, interchange locations, proxy-score distribution and network filters.
+### 3 — GTFS Network & First/Last Mile
+Station map/table, nearest-bus-stop distance, 500m bus-stop density, interchange status and first-mile bands.
 
-### 4 — Decision Support
-Finding → evidence → implication → recommended next investigation, with limitations.
+### 4 — Scheduled Travel Time
+Adjacent-station travel-time distribution, longest scheduled segments, evidence volume and line/segment filters.
+
+### 5 — Decision Support
+Finding → evidence → implication → recommended next investigation, with explicit limitations.
 
 ## Integrity rule
-Never present the accessibility proxy as observed accessibility, passenger satisfaction, travel time, transport equity, or service quality. It is a screening indicator derived from network structure.
+Static GTFS provides scheduled information, not observed congestion or real-time delay. Straight-line bus-stop distance is a first-mile proximity proxy, not a pedestrian-network route time. The screening index is an analytical prioritisation aid, not a transport-equity, accessibility-quality or passenger-experience score.
