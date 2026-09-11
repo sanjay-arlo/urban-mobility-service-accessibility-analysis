@@ -1,0 +1,31 @@
+line,station,network_role,interchange_flag,accessibility_proxy_score,accessibility_band
+Blue,Wimco Nagar Metro,Operational,0,50,Basic network connectivity
+Blue,Thiruvottriyur,Operational,0,50,Basic network connectivity
+Blue,Washermanpet Metro,Operational,0,50,Basic network connectivity
+Blue,Mannadi,Operational,0,50,Basic network connectivity
+Blue,High Court,Operational,0,50,Basic network connectivity
+Blue,Puratchi Thalaivar Dr. M.G.Ramachandran Central,Interchange,1,100,Interchange connectivity
+Blue,Government Estate,Operational,0,50,Basic network connectivity
+Blue,LIC,Operational,0,50,Basic network connectivity
+Blue,Thousand Lights,Operational,0,50,Basic network connectivity
+Blue,AG-DMS,Operational,0,50,Basic network connectivity
+Blue,Teynampet,Operational,0,50,Basic network connectivity
+Blue,Nandanam,Interchange,1,100,Interchange connectivity
+Blue,Saidapet Metro,Operational,0,50,Basic network connectivity
+Blue,Little Mount,Operational,0,50,Basic network connectivity
+Blue,Arignar Anna Alandur,Interchange,1,100,Interchange connectivity
+Blue,OTA-Nanganallur Road,Operational,0,50,Basic network connectivity
+Blue,Meenambakkam,Operational,0,50,Basic network connectivity
+Blue,Chennai International Airport,Operational,0,50,Basic network connectivity
+Green,Puratchi Thalaivar Dr. M.G.Ramachandran Central,Interchange,1,100,Interchange connectivity
+Green,Egmore,Interchange,1,100,Interchange connectivity
+Green,Shenoy Nagar,Operational,0,50,Basic network connectivity
+Green,Anna Nagar Tower,Operational,0,50,Basic network connectivity
+Green,Thirumangalam,Operational,0,50,Basic network connectivity
+Green,Koyambedu,Operational,0,50,Basic network connectivity
+Green,CMBT,Interchange,1,100,Interchange connectivity
+Green,Arumbakkam,Operational,0,50,Basic network connectivity
+Green,Vadapalani,Operational,0,50,Basic network connectivity
+Green,Ashok Nagar,Operational,0,50,Basic network connectivity
+Green,Ekkattuthangal,Operational,0,50,Basic network connectivity
+Green,St. Thomas Mount,Interchange,1,100,Interchange connectivity
